@@ -24,8 +24,8 @@ function AppContent({ isDarkMode }: { isDarkMode: boolean }) {
         { backgroundColor: bg, paddingTop: insets.top, paddingBottom: insets.bottom },
       ]}
     >
-      <Text style={[styles.wordmark, { color: fg }]}>Lumio.fit</Text>
-      <Text style={[styles.tagline, { color: muted }]}>Clarity in every rep.</Text>
+      <Text style={[styles.wordmark, { color: fg }]}>StrengthPilot</Text>
+      <Text style={[styles.tagline, { color: muted }]}>All the tools to stay on course.</Text>
       <View style={styles.quoteWrap}>
         <Text style={[styles.quote, { color: muted }]}>
           "We are what we repeatedly do."

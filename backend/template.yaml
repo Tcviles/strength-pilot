@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: Lumio.fit backend — Cognito, DynamoDB, and Python Lambdas for adaptive workout generation
+Description: StrengthPilot backend — Cognito, DynamoDB, and Python Lambdas for adaptive workout generation
 
 Parameters:
   Stage:
@@ -29,8 +29,8 @@ Resources:
   CommonLayer:
     Type: AWS::Serverless::LayerVersion
     Properties:
-      LayerName: !Sub lumio-fit-${Stage}-common
-      Description: Shared services, models, utils, and domain logic for Lumio.fit lambdas
+      LayerName: !Sub strength-pilot-${Stage}-common
+      Description: Shared services, models, utils, and domain logic for StrengthPilot lambdas
       ContentUri: layers/common
       CompatibleRuntimes: [python3.11]
       CompatibleArchitectures: [arm64]
@@ -40,7 +40,7 @@ Resources:
   UserPool:
     Type: AWS::Cognito::UserPool
     Properties:
-      UserPoolName: !Sub lumio-fit-${Stage}-users
+      UserPoolName: !Sub strength-pilot-${Stage}-users
       UsernameAttributes: [email]
       AutoVerifiedAttributes: [email]
       Policies:
@@ -59,7 +59,7 @@ Resources:
   UserPoolClient:
     Type: AWS::Cognito::UserPoolClient
     Properties:
-      ClientName: !Sub lumio-fit-${Stage}-mobile
+      ClientName: !Sub strength-pilot-${Stage}-mobile
       UserPoolId: !Ref UserPool
       GenerateSecret: false
       ExplicitAuthFlows:
@@ -70,7 +70,7 @@ Resources:
   UsersTable:
     Type: AWS::DynamoDB::Table
     Properties:
-      TableName: !Sub lumio-fit-${Stage}-users
+      TableName: !Sub strength-pilot-${Stage}-users
       BillingMode: PAY_PER_REQUEST
       AttributeDefinitions:
         - AttributeName: userId
@@ -82,7 +82,7 @@ Resources:
   WorkoutsTable:
     Type: AWS::DynamoDB::Table
     Properties:
-      TableName: !Sub lumio-fit-${Stage}-workouts
+      TableName: !Sub strength-pilot-${Stage}-workouts
       BillingMode: PAY_PER_REQUEST
       AttributeDefinitions:
         - AttributeName: userId
@@ -109,7 +109,7 @@ Resources:
   GymsTable:
     Type: AWS::DynamoDB::Table
     Properties:
-      TableName: !Sub lumio-fit-${Stage}-gyms
+      TableName: !Sub strength-pilot-${Stage}-gyms
       BillingMode: PAY_PER_REQUEST
       AttributeDefinitions:
         - AttributeName: userId
@@ -123,7 +123,7 @@ Resources:
           KeyType: RANGE
 
   # ---- HTTP API with Cognito JWT authorizer ----
-  LumioApi:
+  StrengthPilotApi:
     Type: AWS::Serverless::HttpApi
     Properties:
       StageName: !Ref Stage
@@ -156,14 +156,14 @@ Resources:
     <<: *GeneralFunction
     Properties:
       <<: *GeneralProperties
-      FunctionName: !Sub lumio-fit-${Stage}-generateWorkout
+      FunctionName: !Sub strength-pilot-${Stage}-generateWorkout
       CodeUri: src/workout
       Handler: generate_workout.lambda_handler
       Events:
         Api:
           Type: HttpApi
           Properties:
-            ApiId: !Ref LumioApi
+            ApiId: !Ref StrengthPilotApi
             Path: /workouts/generate
             Method: post
 
@@ -171,14 +171,14 @@ Resources:
     <<: *GeneralFunction
     Properties:
       <<: *GeneralProperties
-      FunctionName: !Sub lumio-fit-${Stage}-swapExercise
+      FunctionName: !Sub strength-pilot-${Stage}-swapExercise
       CodeUri: src/workout
       Handler: swap_exercise.lambda_handler
       Events:
         Api:
           Type: HttpApi
           Properties:
-            ApiId: !Ref LumioApi
+            ApiId: !Ref StrengthPilotApi
             Path: /workouts/swap
             Method: post
 
@@ -186,14 +186,14 @@ Resources:
     <<: *GeneralFunction
     Properties:
       <<: *GeneralProperties
-      FunctionName: !Sub lumio-fit-${Stage}-logSet
+      FunctionName: !Sub strength-pilot-${Stage}-logSet
       CodeUri: src/workout
       Handler: log_set.lambda_handler
       Events:
         Api:
           Type: HttpApi
           Properties:
-            ApiId: !Ref LumioApi
+            ApiId: !Ref StrengthPilotApi
             Path: /workouts/{workoutId}/sets
             Method: post
 
@@ -201,14 +201,14 @@ Resources:
     <<: *GeneralFunction
     Properties:
       <<: *GeneralProperties
-      FunctionName: !Sub lumio-fit-${Stage}-listWorkouts
+      FunctionName: !Sub strength-pilot-${Stage}-listWorkouts
       CodeUri: src/workout
       Handler: list_workouts.lambda_handler
       Events:
         Api:
           Type: HttpApi
           Properties:
-            ApiId: !Ref LumioApi
+            ApiId: !Ref StrengthPilotApi
             Path: /workouts
             Method: get
 
@@ -217,14 +217,14 @@ Resources:
     <<: *GeneralFunction
     Properties:
       <<: *GeneralProperties
-      FunctionName: !Sub lumio-fit-${Stage}-getUserProfile
+      FunctionName: !Sub strength-pilot-${Stage}-getUserProfile
       CodeUri: src/user
       Handler: get_user_profile.lambda_handler
       Events:
         Api:
           Type: HttpApi
           Properties:
-            ApiId: !Ref LumioApi
+            ApiId: !Ref StrengthPilotApi
             Path: /me
             Method: get
 
@@ -232,14 +232,14 @@ Resources:
     <<: *GeneralFunction
     Properties:
       <<: *GeneralProperties
-      FunctionName: !Sub lumio-fit-${Stage}-updateUserProfile
+      FunctionName: !Sub strength-pilot-${Stage}-updateUserProfile
       CodeUri: src/user
       Handler: update_user_profile.lambda_handler
       Events:
         Api:
           Type: HttpApi
           Properties:
-            ApiId: !Ref LumioApi
+            ApiId: !Ref StrengthPilotApi
             Path: /me
             Method: put
 
@@ -248,14 +248,14 @@ Resources:
     <<: *GeneralFunction
     Properties:
       <<: *GeneralProperties
-      FunctionName: !Sub lumio-fit-${Stage}-getGym
+      FunctionName: !Sub strength-pilot-${Stage}-getGym
       CodeUri: src/gym
       Handler: get_gym.lambda_handler
       Events:
         Api:
           Type: HttpApi
           Properties:
-            ApiId: !Ref LumioApi
+            ApiId: !Ref StrengthPilotApi
             Path: /gyms/{gymId}
             Method: get
 
@@ -263,21 +263,21 @@ Resources:
     <<: *GeneralFunction
     Properties:
       <<: *GeneralProperties
-      FunctionName: !Sub lumio-fit-${Stage}-updateGym
+      FunctionName: !Sub strength-pilot-${Stage}-updateGym
       CodeUri: src/gym
       Handler: update_gym.lambda_handler
       Events:
         Api:
           Type: HttpApi
           Properties:
-            ApiId: !Ref LumioApi
+            ApiId: !Ref StrengthPilotApi
             Path: /gyms/{gymId}
             Method: put
 
 Outputs:
   ApiEndpoint:
-    Description: Lumio.fit HTTP API base URL
-    Value: !Sub https://${LumioApi}.execute-api.${AWS::Region}.amazonaws.com
+    Description: StrengthPilot HTTP API base URL
+    Value: !Sub https://${StrengthPilotApi}.execute-api.${AWS::Region}.amazonaws.com
   UserPoolId:
     Description: Cognito User Pool ID
     Value: !Ref UserPool
