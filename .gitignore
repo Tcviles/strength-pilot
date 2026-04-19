@@ -1,0 +1,52 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+.pytest_cache/
+.venv/
+venv/
+
+# Node / React Native
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnp.*
+
+# SAM / AWS
+.aws-sam/
+packaged.yaml
+samconfig.local.toml
+
+# iOS / Xcode
+mobile/ios/Pods/
+mobile/ios/build/
+mobile/ios/.xcode.env.local
+*.xcuserstate
+
+# Android / Gradle
+mobile/android/.gradle/
+mobile/android/build/
+mobile/android/app/build/
+mobile/android/local.properties
+
+# Env
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+logs/

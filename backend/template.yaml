@@ -1,0 +1,286 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Lumio.fit backend — Cognito, DynamoDB, and Python Lambdas for adaptive workout generation
+
+Parameters:
+  Stage:
+    Type: String
+    Default: dev
+    AllowedValues: [dev, prod]
+
+Globals:
+  Function:
+    Runtime: python3.11
+    Timeout: 10
+    MemorySize: 512
+    Architectures: [arm64]
+    Layers:
+      - !Ref CommonLayer
+    Environment:
+      Variables:
+        USERS_TABLE: !Ref UsersTable
+        WORKOUTS_TABLE: !Ref WorkoutsTable
+        GYMS_TABLE: !Ref GymsTable
+        COGNITO_USER_POOL_ID: !Ref UserPool
+        STAGE: !Ref Stage
+
+Resources:
+  # ---- Shared layer ----
+  CommonLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: !Sub lumio-fit-${Stage}-common
+      Description: Shared services, models, utils, and domain logic for Lumio.fit lambdas
+      ContentUri: layers/common
+      CompatibleRuntimes: [python3.11]
+      CompatibleArchitectures: [arm64]
+      RetentionPolicy: Delete
+
+  # ---- Cognito ----
+  UserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName: !Sub lumio-fit-${Stage}-users
+      UsernameAttributes: [email]
+      AutoVerifiedAttributes: [email]
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 8
+          RequireLowercase: true
+          RequireNumbers: true
+          RequireUppercase: false
+          RequireSymbols: false
+      Schema:
+        - Name: email
+          AttributeDataType: String
+          Required: true
+          Mutable: true
+
+  UserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      ClientName: !Sub lumio-fit-${Stage}-mobile
+      UserPoolId: !Ref UserPool
+      GenerateSecret: false
+      ExplicitAuthFlows:
+        - ALLOW_USER_SRP_AUTH
+        - ALLOW_REFRESH_TOKEN_AUTH
+
+  # ---- DynamoDB ----
+  UsersTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub lumio-fit-${Stage}-users
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: userId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: userId
+          KeyType: HASH
+
+  WorkoutsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub lumio-fit-${Stage}-workouts
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: userId
+          AttributeType: S
+        - AttributeName: workoutId
+          AttributeType: S
+        - AttributeName: completedAt
+          AttributeType: S
+      KeySchema:
+        - AttributeName: userId
+          KeyType: HASH
+        - AttributeName: workoutId
+          KeyType: RANGE
+      GlobalSecondaryIndexes:
+        - IndexName: CompletedAtIndex
+          KeySchema:
+            - AttributeName: userId
+              KeyType: HASH
+            - AttributeName: completedAt
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+
+  GymsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub lumio-fit-${Stage}-gyms
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: userId
+          AttributeType: S
+        - AttributeName: gymId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: userId
+          KeyType: HASH
+        - AttributeName: gymId
+          KeyType: RANGE
+
+  # ---- HTTP API with Cognito JWT authorizer ----
+  LumioApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      StageName: !Ref Stage
+      Auth:
+        DefaultAuthorizer: CognitoAuthorizer
+        Authorizers:
+          CognitoAuthorizer:
+            IdentitySource: $request.header.Authorization
+            JwtConfiguration:
+              audience:
+                - !Ref UserPoolClient
+              issuer: !Sub https://cognito-idp.${AWS::Region}.amazonaws.com/${UserPool}
+      CorsConfiguration:
+        AllowOrigins: ['*']
+        AllowHeaders: ['Authorization', 'Content-Type']
+        AllowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
+
+  # ---- Lambdas (YAML anchors for DRY config) ----
+  GeneralFunction: &GeneralFunction
+    Type: AWS::Serverless::Function
+    Properties: &GeneralProperties
+      Handler: app.lambda_handler
+      Policies:
+        - AmazonDynamoDBFullAccess
+        - AmazonCognitoPowerUser
+        - AWSLambdaBasicExecutionRole
+
+  # ---- Workout domain ----
+  GenerateWorkout:
+    <<: *GeneralFunction
+    Properties:
+      <<: *GeneralProperties
+      FunctionName: !Sub lumio-fit-${Stage}-generateWorkout
+      CodeUri: src/workout
+      Handler: generate_workout.lambda_handler
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref LumioApi
+            Path: /workouts/generate
+            Method: post
+
+  SwapExercise:
+    <<: *GeneralFunction
+    Properties:
+      <<: *GeneralProperties
+      FunctionName: !Sub lumio-fit-${Stage}-swapExercise
+      CodeUri: src/workout
+      Handler: swap_exercise.lambda_handler
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref LumioApi
+            Path: /workouts/swap
+            Method: post
+
+  LogSet:
+    <<: *GeneralFunction
+    Properties:
+      <<: *GeneralProperties
+      FunctionName: !Sub lumio-fit-${Stage}-logSet
+      CodeUri: src/workout
+      Handler: log_set.lambda_handler
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref LumioApi
+            Path: /workouts/{workoutId}/sets
+            Method: post
+
+  ListWorkouts:
+    <<: *GeneralFunction
+    Properties:
+      <<: *GeneralProperties
+      FunctionName: !Sub lumio-fit-${Stage}-listWorkouts
+      CodeUri: src/workout
+      Handler: list_workouts.lambda_handler
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref LumioApi
+            Path: /workouts
+            Method: get
+
+  # ---- User domain ----
+  GetUserProfile:
+    <<: *GeneralFunction
+    Properties:
+      <<: *GeneralProperties
+      FunctionName: !Sub lumio-fit-${Stage}-getUserProfile
+      CodeUri: src/user
+      Handler: get_user_profile.lambda_handler
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref LumioApi
+            Path: /me
+            Method: get
+
+  UpdateUserProfile:
+    <<: *GeneralFunction
+    Properties:
+      <<: *GeneralProperties
+      FunctionName: !Sub lumio-fit-${Stage}-updateUserProfile
+      CodeUri: src/user
+      Handler: update_user_profile.lambda_handler
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref LumioApi
+            Path: /me
+            Method: put
+
+  # ---- Gym domain ----
+  GetGym:
+    <<: *GeneralFunction
+    Properties:
+      <<: *GeneralProperties
+      FunctionName: !Sub lumio-fit-${Stage}-getGym
+      CodeUri: src/gym
+      Handler: get_gym.lambda_handler
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref LumioApi
+            Path: /gyms/{gymId}
+            Method: get
+
+  UpdateGym:
+    <<: *GeneralFunction
+    Properties:
+      <<: *GeneralProperties
+      FunctionName: !Sub lumio-fit-${Stage}-updateGym
+      CodeUri: src/gym
+      Handler: update_gym.lambda_handler
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref LumioApi
+            Path: /gyms/{gymId}
+            Method: put
+
+Outputs:
+  ApiEndpoint:
+    Description: Lumio.fit HTTP API base URL
+    Value: !Sub https://${LumioApi}.execute-api.${AWS::Region}.amazonaws.com
+  UserPoolId:
+    Description: Cognito User Pool ID
+    Value: !Ref UserPool
+  UserPoolClientId:
+    Description: Cognito User Pool Client ID (mobile app)
+    Value: !Ref UserPoolClient
