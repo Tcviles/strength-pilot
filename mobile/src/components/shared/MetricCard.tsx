@@ -1,16 +1,17 @@
 import React from 'react';
 import { Text, View } from 'react-native';
 
-import { styles } from '../theme/styles';
-import type { Palette } from '../types/app';
+import { useTheme } from '../../hooks/useTheme';
+import { styles } from '../../theme/styles';
 
 type Props = {
-  palette: Palette;
   label: string;
   value: string;
 };
 
-export function MetricCard({ palette, label, value }: Props) {
+export function MetricCard({ label, value }: Props) {
+  const { palette } = useTheme();
+
   return (
     <View style={[styles.metricCard, { backgroundColor: palette.panel, borderColor: palette.line }]}>
       <Text style={[styles.metricLabel, { color: palette.muted }]}>{label}</Text>

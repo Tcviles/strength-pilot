@@ -8,6 +8,45 @@ function logDebug(label: string, details?: Record<string, unknown>) {
   console.log(`[StrengthPilot] ${label}`);
 }
 
+function sanitizeBody(body?: object) {
+  if (!body) {
+    return null;
+  }
+
+  const cloned = JSON.parse(JSON.stringify(body)) as Record<string, unknown>;
+
+  if ('PASSWORD' in cloned) {
+    cloned.PASSWORD = '[REDACTED]';
+  }
+  if ('NEW_PASSWORD' in cloned) {
+    cloned.NEW_PASSWORD = '[REDACTED]';
+  }
+  if ('Password' in cloned) {
+    cloned.Password = '[REDACTED]';
+  }
+  if ('ConfirmationCode' in cloned) {
+    cloned.ConfirmationCode = '[REDACTED_CODE]';
+  }
+
+  return cloned;
+}
+
+function summarizeError(err: unknown) {
+  if (err instanceof Error) {
+    return {
+      name: err.name,
+      message: err.message,
+      stack: err.stack || null,
+    };
+  }
+
+  return {
+    name: 'UnknownError',
+    message: String(err),
+    stack: null,
+  };
+}
+
 export async function apiRequest<T>(
   path: string,
   idToken: string,
@@ -20,6 +59,9 @@ export async function apiRequest<T>(
     path,
     url,
     hasBody: Boolean(body),
+    body: sanitizeBody(body),
+    hasToken: Boolean(idToken),
+    tokenPreview: idToken ? `${idToken.slice(0, 12)}...` : null,
   });
 
   let response: Response;
@@ -33,14 +75,17 @@ export async function apiRequest<T>(
       body: body ? JSON.stringify(body) : undefined,
     });
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Network request failed';
+    const errorSummary = summarizeError(err);
     logDebug('API network failure', {
       method,
       path,
       url,
-      message,
+      body: sanitizeBody(body),
+      hasToken: Boolean(idToken),
+      tokenPreview: idToken ? `${idToken.slice(0, 12)}...` : null,
+      error: errorSummary,
     });
-    throw new Error(`Network request failed for ${method} ${path}`);
+    throw new Error(`Network request failed for ${method} ${path}: ${errorSummary.message}`);
   }
 
   const payload = await response.json().catch(() => ({}));
@@ -50,6 +95,7 @@ export async function apiRequest<T>(
     url,
     ok: response.ok,
     status: response.status,
+    payload,
   });
 
   if (!response.ok) {
@@ -62,6 +108,7 @@ export async function apiRequest<T>(
 export async function cognitoRequest(target: string, payload: object) {
   logDebug('Cognito request', {
     target,
+    payload: sanitizeBody(payload),
   });
 
   const response = await fetch(COGNITO_ENDPOINT, {

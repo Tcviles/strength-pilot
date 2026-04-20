@@ -12,7 +12,11 @@ type AuthContextValue = {
   email: string;
   password: string;
   newPassword: string;
+  resetCode: string;
+  resetPassword: string;
+  resetPasswordConfirm: string;
   requiresNewPassword: boolean;
+  forgotPasswordStep: 0 | 1 | 2;
   loading: boolean;
   status: string;
   error: string;
@@ -20,6 +24,13 @@ type AuthContextValue = {
   setEmail: (value: string) => void;
   setPassword: (value: string) => void;
   setNewPassword: (value: string) => void;
+  setResetCode: (value: string) => void;
+  setResetPassword: (value: string) => void;
+  setResetPasswordConfirm: (value: string) => void;
+  startForgotPassword: () => void;
+  cancelForgotPassword: () => void;
+  requestPasswordReset: () => Promise<string>;
+  confirmPasswordReset: () => Promise<string>;
   signIn: () => Promise<string>;
   completeNewPassword: () => Promise<string>;
   signUp: () => Promise<string>;
@@ -42,11 +53,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
+  const [resetCode, setResetCode] = useState('');
+  const [resetPassword, setResetPassword] = useState('');
+  const [resetPasswordConfirm, setResetPasswordConfirm] = useState('');
   const [authSession, setAuthSession] = useState('');
   const [requiresNewPassword, setRequiresNewPassword] = useState(false);
+  const [forgotPasswordStep, setForgotPasswordStep] = useState<0 | 1 | 2>(0);
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState('Ready');
   const [error, setError] = useState('');
+
+  const resetForgotPasswordState = useCallback(() => {
+    setResetCode('');
+    setResetPassword('');
+    setResetPasswordConfirm('');
+  }, []);
+
+  const setModeWithReset = useCallback((value: AuthMode) => {
+    setMode(value);
+    setForgotPasswordStep(0);
+    resetForgotPasswordState();
+    setError('');
+    setStatus('Ready');
+  }, [resetForgotPasswordState]);
+
+  const startForgotPassword = useCallback(() => {
+    setForgotPasswordStep(1);
+    resetForgotPasswordState();
+    setError('');
+    setStatus('Reset your password');
+  }, [resetForgotPasswordState]);
+
+  const cancelForgotPassword = useCallback(() => {
+    setForgotPasswordStep(0);
+    resetForgotPasswordState();
+    setError('');
+    setStatus('Ready');
+  }, [resetForgotPasswordState]);
 
   const signIn = useCallback(async () => {
     setLoading(true);
@@ -193,6 +236,86 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [email, password]);
 
+  const requestPasswordReset = useCallback(async () => {
+    setLoading(true);
+    setError('');
+    setStatus('Sending reset code...');
+    try {
+      console.log('[StrengthPilot] Forgot password request', {
+        email: maskEmail(email.trim()),
+      });
+
+      const response = await cognitoRequest('AWSCognitoIdentityProviderService.ForgotPassword', {
+        ClientId: CONFIG.userPoolClientId,
+        Username: email.trim(),
+      });
+
+      console.log('[StrengthPilot] Forgot password response', {
+        delivery: response.CodeDeliveryDetails?.Destination,
+      });
+      setForgotPasswordStep(2);
+      setStatus('Check your email for the reset code.');
+      return 'Check your email for the reset code.';
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unable to send reset code.';
+      console.log('[StrengthPilot] Forgot password request failed', {
+        email: maskEmail(email.trim()),
+        message,
+      });
+      setError(message);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, [email]);
+
+  const confirmPasswordReset = useCallback(async () => {
+    if (resetPassword.length < 8) {
+      const message = 'New password must be at least 8 characters.';
+      setError(message);
+      throw new Error(message);
+    }
+    if (resetPassword !== resetPasswordConfirm) {
+      const message = 'Passwords do not match.';
+      setError(message);
+      throw new Error(message);
+    }
+
+    setLoading(true);
+    setError('');
+    setStatus('Confirming password reset...');
+    try {
+      console.log('[StrengthPilot] Confirm forgot password', {
+        email: maskEmail(email.trim()),
+        codeLength: resetCode.length,
+        resetPasswordLength: resetPassword.length,
+      });
+
+      await cognitoRequest('AWSCognitoIdentityProviderService.ConfirmForgotPassword', {
+        ClientId: CONFIG.userPoolClientId,
+        Username: email.trim(),
+        ConfirmationCode: resetCode.trim(),
+        Password: resetPassword,
+      });
+
+      setForgotPasswordStep(0);
+      resetForgotPasswordState();
+      setMode('signIn');
+      setStatus('Password reset successful. Sign in with your new password.');
+      return 'Password reset successful. Sign in with your new password.';
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unable to reset password.';
+      console.log('[StrengthPilot] Confirm forgot password failed', {
+        email: maskEmail(email.trim()),
+        message,
+      });
+      setError(message);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, [email, resetCode, resetPassword, resetPasswordConfirm, resetForgotPasswordState]);
+
   const value = useMemo(
     () => ({
       mode,
@@ -200,14 +323,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       email,
       password,
       newPassword,
+      resetCode,
+      resetPassword,
+      resetPasswordConfirm,
       requiresNewPassword,
+      forgotPasswordStep,
       loading,
       status,
       error,
-      setMode,
+      setMode: setModeWithReset,
       setEmail,
       setPassword,
       setNewPassword,
+      setResetCode,
+      setResetPassword,
+      setResetPasswordConfirm,
+      startForgotPassword,
+      cancelForgotPassword,
+      requestPasswordReset,
+      confirmPasswordReset,
       signIn,
       completeNewPassword,
       signUp,
@@ -218,10 +352,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       email,
       password,
       newPassword,
+      resetCode,
+      resetPassword,
+      resetPasswordConfirm,
       requiresNewPassword,
+      forgotPasswordStep,
       loading,
       status,
       error,
+      setModeWithReset,
+      startForgotPassword,
+      cancelForgotPassword,
+      requestPasswordReset,
+      confirmPasswordReset,
       signIn,
       completeNewPassword,
       signUp,

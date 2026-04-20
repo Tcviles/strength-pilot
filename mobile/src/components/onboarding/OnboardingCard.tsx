@@ -1,31 +1,26 @@
 import React, { useMemo, useState } from 'react';
 import { Image, Text, TextInput, View } from 'react-native';
 
-import type { Experience, Goal, Gym, GymType, Palette, Profile } from '../types/app';
-import { ActionButton } from './ActionButton';
-import { OptionRow } from './OptionRow';
+import { useAppState } from '../../hooks/useAppState';
+import { useTheme } from '../../hooks/useTheme';
+import type { Experience, Goal, GymType } from '../../types/app';
+import { ActionButton } from '../shared/ActionButton';
+import { OptionRow } from '../shared/OptionRow';
 import { onboardingCardStyles } from './OnboardingCard.styles';
-import { styles } from '../theme/styles';
+import { styles } from '../../theme/styles';
 
-type Props = {
-  palette: Palette;
-  profile: Profile;
-  gym: Gym;
-  loading: boolean;
-  onProfileChange: (value: Profile) => void;
-  onGymChange: (value: Gym) => void;
-  onSave: () => void;
-};
-
-export function OnboardingCard({
-  palette,
-  profile,
-  gym,
-  loading,
-  onProfileChange,
-  onGymChange,
-  onSave,
-}: Props) {
+export function OnboardingCard() {
+  const { palette } = useTheme();
+  const {
+    draftProfile: profile,
+    draftGym: gym,
+    loading,
+    status,
+    error,
+    setDraftProfile: onProfileChange,
+    setDraftGym: onGymChange,
+    saveOnboarding: onSave,
+  } = useAppState();
   const [step, setStep] = useState(0);
   const firstName = profile.firstName?.trim();
 
@@ -106,14 +101,19 @@ export function OnboardingCard({
           <View style={onboardingCardStyles.onboardingHeroCopy}>
             <Text style={[onboardingCardStyles.onboardingWelcomeEyebrow, { color: palette.text }]}>Welcome,</Text>
             {firstName ? (
-              <Text numberOfLines={1} style={[onboardingCardStyles.onboardingWelcomeName, { color: palette.text }]}>
+              <Text
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.62}
+                style={[onboardingCardStyles.onboardingWelcomeName, { color: palette.text }]}
+              >
                 {firstName}
               </Text>
             ) : null}
             <Text style={[onboardingCardStyles.onboardingIntro, { color: palette.muted }]}>Tell us about you</Text>
           </View>
           <View style={onboardingCardStyles.onboardingLogoWrap}>
-            <Image source={require('../media/LoginLogo.png')} style={onboardingCardStyles.onboardingLogo} resizeMode="contain" />
+            <Image source={require('../../media/LoginLogo.png')} style={onboardingCardStyles.onboardingLogo} resizeMode="contain" />
           </View>
         </View>
       </View>
@@ -144,25 +144,30 @@ export function OnboardingCard({
           />
         </View>
       ) : (
-        <OptionRow
-          palette={palette}
-          label={currentStep.label}
-          options={currentStep.options}
-          selected={currentStep.selected}
-          onSelect={currentStep.onSelect}
-          columns={currentStep.options.length >= 4 ? 2 : currentStep.options.length === 3 ? 3 : 1}
-        />
+        <OptionRow label={currentStep.label} options={currentStep.options} selected={currentStep.selected} onSelect={currentStep.onSelect} />
       )}
 
+      {status !== 'Ready' || error ? (
+        <View
+          style={[
+            onboardingCardStyles.onboardingStatusCard,
+            { backgroundColor: palette.panel, borderColor: error ? palette.error : palette.line },
+          ]}
+        >
+          <Text style={[onboardingCardStyles.onboardingStatusText, { color: palette.text }]}>
+            {error ? 'Save issue' : status}
+          </Text>
+          {error ? (
+            <Text style={[onboardingCardStyles.onboardingErrorText, { color: palette.error }]}>
+              {error}
+            </Text>
+          ) : null}
+        </View>
+      ) : null}
+
       <View style={onboardingCardStyles.onboardingFooter}>
+        <ActionButton label="Back" disabled={loading || isFirstStep} onPress={() => setStep((value) => Math.max(0, value - 1))} />
         <ActionButton
-          palette={palette}
-          label="Back"
-          disabled={loading || isFirstStep}
-          onPress={() => setStep((value) => Math.max(0, value - 1))}
-        />
-        <ActionButton
-          palette={palette}
           label={isLastStep ? 'Save And Continue' : 'Continue'}
           disabled={loading || (currentStep.type === 'text' && !currentStep.value.trim())}
           onPress={isLastStep ? onSave : () => setStep((value) => Math.min(steps.length - 1, value + 1))}

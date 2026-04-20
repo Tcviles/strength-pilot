@@ -1,12 +1,11 @@
 import React from 'react';
 import { Pressable, Text, View } from 'react-native';
 
-import { styles } from '../theme/styles';
-import type { Palette } from '../types/app';
-import { humanize } from '../utils/format';
+import { useTheme } from '../../hooks/useTheme';
+import { styles } from '../../theme/styles';
+import { humanize } from '../../utils/format';
 
 type Props = {
-  palette: Palette;
   label: string;
   options: string[];
   selected: string;
@@ -14,9 +13,12 @@ type Props = {
   columns?: 1 | 2 | 3 | 4;
 };
 
-export function OptionRow({ palette, label, options, selected, onSelect, columns }: Props) {
+export function OptionRow({ label, options, selected, onSelect, columns }: Props) {
+  const { palette } = useTheme();
+
+  const hasLongLabel = options.some((option) => humanize(option).length >= 10);
   const resolvedColumns =
-    columns ?? (options.length >= 4 ? 2 : options.length === 3 ? 3 : 1);
+    columns ?? (options.length >= 4 ? 2 : options.length === 3 ? (hasLongLabel ? 2 : 3) : 1);
   const itemWidth =
     resolvedColumns === 1 ? '100%' : resolvedColumns === 2 ? '48%' : resolvedColumns === 3 ? '31%' : '23%';
 

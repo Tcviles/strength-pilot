@@ -34,10 +34,11 @@ export const onboardingCardStyles = StyleSheet.create({
     letterSpacing: -0.1,
   },
   onboardingWelcomeName: {
-    fontSize: 28,
-    lineHeight: 30,
+    fontSize: 24,
+    lineHeight: 28,
     fontWeight: '800',
     letterSpacing: -0.7,
+    width: "85%"
   },
   onboardingIntro: {
     fontSize: 15,
@@ -48,8 +49,8 @@ export const onboardingCardStyles = StyleSheet.create({
   },
   onboardingLogoWrap: {
     position: 'absolute',
-    right: -180,
-    top: -30,
+    right: -200,
+    top: -50,
     width: 188,
     height: 132,
     alignItems: 'flex-end',
@@ -81,6 +82,21 @@ export const onboardingCardStyles = StyleSheet.create({
     flexDirection: 'row',
     gap: 12,
     paddingTop: 6,
+  },
+  onboardingStatusCard: {
+    borderWidth: 1,
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    gap: 4,
+  },
+  onboardingStatusText: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  onboardingErrorText: {
+    fontSize: 13,
+    lineHeight: 18,
   },
   onboardingTextInput: {
     minHeight: 56,

@@ -1,16 +1,17 @@
 import React from 'react';
 import { Text, View } from 'react-native';
 
-import { styles } from '../theme/styles';
-import type { Palette } from '../types/app';
+import { useTheme } from '../../hooks/useTheme';
+import { styles } from '../../theme/styles';
 
 type Props = {
-  palette: Palette;
   eyebrow: string;
   title: string;
 };
 
-export function SectionHeading({ palette, eyebrow, title }: Props) {
+export function SectionHeading({ eyebrow, title }: Props) {
+  const { palette } = useTheme();
+
   return (
     <View style={styles.sectionHeading}>
       <Text style={[styles.eyebrow, { color: palette.accent }]}>{eyebrow}</Text>

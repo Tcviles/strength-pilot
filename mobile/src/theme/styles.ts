@@ -10,8 +10,8 @@ export const styles = StyleSheet.create({
   authCard: {
     borderWidth: 1,
     borderRadius: 28,
-    padding: 22,
-    gap: 14,
+    padding: 18,
+    gap: 12,
     marginHorizontal: 8,
   },
   sectionHeading: {
@@ -64,6 +64,9 @@ export const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
   },
+  buttonPressable: {
+    flex: 1,
+  },
   button: {
     flex: 1,
     minHeight: 54,
@@ -71,6 +74,10 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 18,
+    overflow: 'hidden',
+  },
+  buttonBackgroundImage: {
+    borderRadius: 16,
   },
   buttonDisabled: {
     opacity: 0.75,

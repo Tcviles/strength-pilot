@@ -11,6 +11,8 @@ type AppContextValue = {
   gym: Gym | null;
   workout: Workout | null;
   focus: string;
+  currentScreen: 'home' | 'workout';
+  workoutStartedAt: string | null;
   draftProfile: Profile;
   draftGym: Gym;
   crowd: Crowd;
@@ -23,7 +25,9 @@ type AppContextValue = {
   setCrowd: (value: Crowd) => void;
   setMood: (value: string) => void;
   saveOnboarding: () => Promise<void>;
-  generateWorkout: () => Promise<void>;
+  generateWorkout: (options?: { openWorkout?: boolean; startOnComplete?: boolean }) => Promise<void>;
+  startWorkout: () => Promise<void>;
+  openWorkout: () => void;
   backHome: () => void;
 };
 
@@ -35,6 +39,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [gym, setGym] = useState<Gym | null>(null);
   const [workout, setWorkout] = useState<Workout | null>(null);
   const [focus, setFocus] = useState('');
+  const [currentScreen, setCurrentScreen] = useState<'home' | 'workout'>('home');
+  const [workoutStartedAt, setWorkoutStartedAt] = useState<string | null>(null);
   const [status, setStatus] = useState('Ready');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -43,12 +49,37 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [crowd, setCrowd] = useState<Crowd>('medium');
   const [mood, setMood] = useState('Ready');
 
+  const persistDraftSettings = useCallback(async () => {
+    if (!tokens?.idToken) {
+      return;
+    }
+
+    const preparedGym = buildGymFromType(draftGym.type, draftGym);
+    const savedGym = await apiRequest<Gym>(
+      `/gyms/${CONFIG.gymId}`,
+      tokens.idToken,
+      'PUT',
+      preparedGym,
+    );
+    const savedProfile = await apiRequest<Profile>(
+      '/me',
+      tokens.idToken,
+      'PUT',
+      { ...draftProfile, activeGymId: CONFIG.gymId },
+    );
+
+    setGym(savedGym);
+    setProfile(savedProfile);
+  }, [tokens?.idToken, draftGym, draftProfile]);
+
   useEffect(() => {
     if (!tokens?.idToken) {
       setProfile(null);
       setGym(null);
       setWorkout(null);
       setFocus('');
+      setCurrentScreen('home');
+      setWorkoutStartedAt(null);
       setDraftProfile(DEFAULT_PROFILE);
       setDraftGym(DEFAULT_GYM);
       setCrowd('medium');
@@ -86,6 +117,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             equipment: { ...DEFAULT_GYM.equipment, ...(gymRes.equipment || {}) },
             notes: gymRes.notes || '',
           });
+          setCurrentScreen('home');
           setStatus('Signed in and synced.');
         }
       } catch (err) {
@@ -122,21 +154,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setError('');
     setStatus('Saving profile and gym...');
     try {
-      const preparedGym = buildGymFromType(draftGym.type, draftGym);
-      const savedGym = await apiRequest<Gym>(
-        `/gyms/${CONFIG.gymId}`,
-        tokens.idToken,
-        'PUT',
-        preparedGym,
-      );
-      const savedProfile = await apiRequest<Profile>(
-        '/me',
-        tokens.idToken,
-        'PUT',
-        { ...draftProfile, activeGymId: CONFIG.gymId },
-      );
-      setGym(savedGym);
-      setProfile(savedProfile);
+      console.log('[StrengthPilot] Save onboarding start', {
+        gymType: draftGym.type,
+        goal: draftProfile.goal,
+        experience: draftProfile.experience,
+        daysPerWeek: draftProfile.daysPerWeek,
+        sessionLength: draftProfile.sessionLength,
+        firstName: draftProfile.firstName || null,
+      });
+      await persistDraftSettings();
+      console.log('[StrengthPilot] Save onboarding success', {
+        gymId: CONFIG.gymId,
+        activeGymId: CONFIG.gymId,
+      });
       setStatus('Onboarding complete. Ready to train.');
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Could not save onboarding.';
@@ -144,12 +174,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         message,
       });
       setError(message);
+      setStatus('Could not save onboarding.');
     } finally {
       setLoading(false);
     }
-  }, [tokens?.idToken, draftGym, draftProfile]);
+  }, [draftGym.type, draftProfile.daysPerWeek, draftProfile.experience, draftProfile.firstName, draftProfile.goal, draftProfile.sessionLength, persistDraftSettings, tokens?.idToken]);
 
-  const generateWorkout = useCallback(async () => {
+  const generateWorkout = useCallback(async (options?: { openWorkout?: boolean; startOnComplete?: boolean }) => {
     if (!tokens?.idToken) {
       return;
     }
@@ -158,6 +189,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setError('');
     setStatus('Building your workout...');
     try {
+      await persistDraftSettings();
       const response = await apiRequest<{ workout: Workout; focus: string }>(
         '/workouts/generate',
         tokens.idToken,
@@ -171,17 +203,44 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       );
       setWorkout(response.workout);
       setFocus(response.focus);
+      if (options?.startOnComplete) {
+        setWorkoutStartedAt(new Date().toISOString());
+      }
+      if (options?.openWorkout) {
+        setCurrentScreen('workout');
+      } else {
+        setCurrentScreen('home');
+      }
       setStatus('Workout ready.');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not generate workout.');
     } finally {
       setLoading(false);
     }
-  }, [tokens?.idToken, draftProfile.sessionLength, crowd, mood]);
+  }, [tokens?.idToken, draftProfile.sessionLength, crowd, mood, persistDraftSettings]);
+
+  const openWorkout = useCallback(() => {
+    if (!workout) {
+      return;
+    }
+    setCurrentScreen('workout');
+  }, [workout]);
+
+  const startWorkout = useCallback(async () => {
+    if (workout) {
+      if (!workoutStartedAt) {
+        setWorkoutStartedAt(new Date().toISOString());
+      }
+      setCurrentScreen('workout');
+      return;
+    }
+
+    await generateWorkout({ openWorkout: true, startOnComplete: true });
+  }, [generateWorkout, workout, workoutStartedAt]);
 
   const backHome = useCallback(() => {
-    setWorkout(null);
-    setStatus('Choose when you want to go again.');
+    setCurrentScreen('home');
+    setStatus('Ready');
   }, []);
 
   const value = useMemo(
@@ -190,6 +249,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       gym,
       workout,
       focus,
+      currentScreen,
+      workoutStartedAt,
       draftProfile,
       draftGym,
       crowd,
@@ -203,6 +264,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setMood,
       saveOnboarding,
       generateWorkout,
+      startWorkout,
+      openWorkout,
       backHome,
     }),
     [
@@ -210,6 +273,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       gym,
       workout,
       focus,
+      currentScreen,
+      workoutStartedAt,
       draftProfile,
       draftGym,
       crowd,
@@ -219,6 +284,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       loading,
       saveOnboarding,
       generateWorkout,
+      startWorkout,
+      openWorkout,
       backHome,
     ],
   );

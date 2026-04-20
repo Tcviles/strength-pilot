@@ -1,5 +1,5 @@
 export const CONFIG = {
-  apiBaseUrl: 'https://fvxzzcze0c.execute-api.us-east-1.amazonaws.com/dev',
+  apiBaseUrl: 'https://api.strength-pilot.com',
   cognitoRegion: 'us-east-1',
   userPoolId: 'us-east-1_v4bahW5as',
   userPoolClientId: '1qer58jkvcbd4afp4rfg5t5qkq',

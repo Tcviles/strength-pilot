@@ -7,15 +7,20 @@ export const appContentStyles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     paddingHorizontal: 18,
-    paddingVertical: 24,
+    paddingTop: 24,
+    paddingBottom: 24,
   },
   stageScroll: {
     backgroundColor: 'transparent',
   },
   authScrollContent: {
     justifyContent: 'center',
-    minHeight: '100%',
-    paddingVertical: 12,
+    paddingTop: 0,
+    paddingBottom: 10,
+  },
+  authStageWrap: {
+    width: '100%',
+    alignSelf: 'center',
   },
   onboardingScrollContent: {
     justifyContent: 'center',
@@ -84,17 +89,19 @@ export const appContentStyles = StyleSheet.create({
   },
   authHero: {
     alignItems: 'center',
-    paddingTop: 12,
-    gap: 2,
+    paddingTop: 0,
+    gap: 0,
+    marginBottom: 14,
   },
   authLogo: {
-    width: 290,
-    height: 185,
+    width: 252,
+    height: 156,
   },
-  authWordmark: {
-    fontSize: 30,
-    fontWeight: '900',
-    letterSpacing: -0.9,
+  authTextLogo: {
+    width: 224,
+    height: 44,
+    marginTop: -12,
+    marginBottom: 0,
   },
   authTagline: {
     fontSize: 14,
@@ -165,5 +172,11 @@ export const appContentStyles = StyleSheet.create({
   loadingRow: {
     paddingVertical: 8,
     alignItems: 'center',
+  },
+  footerDock: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
 });

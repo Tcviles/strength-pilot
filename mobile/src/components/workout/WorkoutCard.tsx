@@ -1,24 +1,25 @@
 import React from 'react';
 import { Text, View } from 'react-native';
 
-import { EXERCISE_NAMES } from '../constants/exercises';
-import { styles } from '../theme/styles';
-import type { Palette, Workout } from '../types/app';
-import { humanize } from '../utils/format';
-import { ActionButton } from './ActionButton';
-import { SectionHeading } from './SectionHeading';
+import { EXERCISE_NAMES } from '../../constants/exercises';
+import { useAppState } from '../../hooks/useAppState';
+import { useTheme } from '../../hooks/useTheme';
+import { styles } from '../../theme/styles';
+import { humanize } from '../../utils/format';
+import { ActionButton } from '../shared/ActionButton';
+import { SectionHeading } from '../shared/SectionHeading';
 
-type Props = {
-  palette: Palette;
-  workout: Workout;
-  focus: string;
-  onBack: () => void;
-};
+export function WorkoutCard() {
+  const { palette } = useTheme();
+  const { workout, focus, backHome } = useAppState();
 
-export function WorkoutCard({ palette, workout, focus, onBack }: Props) {
+  if (!workout) {
+    return null;
+  }
+
   return (
     <View style={[styles.card, { backgroundColor: palette.card, borderColor: palette.line }]}>
-      <SectionHeading palette={palette} eyebrow="Workout" title={`${humanize(focus)} session`} />
+      <SectionHeading eyebrow="Workout" title={`${humanize(focus)} session`} />
       <View style={[styles.workoutBanner, { backgroundColor: palette.badge, borderColor: palette.accentSoft }]}>
         <Text style={[styles.workoutBannerText, { color: palette.text }]}>
           {workout.durationMinutes} minutes · {workout.exercises.length} movements
@@ -39,7 +40,7 @@ export function WorkoutCard({ palette, workout, focus, onBack }: Props) {
         </View>
       ))}
 
-      <ActionButton palette={palette} label="Back To Home" onPress={onBack} />
+      <ActionButton label="Back To Home" onPress={backHome} />
     </View>
   );
 }

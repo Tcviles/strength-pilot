@@ -1,8 +1,8 @@
 import React from 'react';
 import { Pressable, Text } from 'react-native';
 
-import { styles } from '../theme/styles';
-import type { Palette } from '../types/app';
+import { styles } from '../../theme/styles';
+import type { Palette } from '../../types/app';
 
 type Props = {
   palette: Palette;
