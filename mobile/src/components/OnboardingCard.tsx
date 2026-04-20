@@ -1,12 +1,10 @@
-import React from 'react';
-import { Text, TextInput, View } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { Image, Text, TextInput, View } from 'react-native';
 
 import type { Experience, Goal, Gym, GymType, Palette, Profile } from '../types/app';
-import { humanize } from '../utils/format';
 import { ActionButton } from './ActionButton';
-import { BooleanChip } from './BooleanChip';
 import { OptionRow } from './OptionRow';
-import { SectionHeading } from './SectionHeading';
+import { onboardingCardStyles } from './OnboardingCard.styles';
 import { styles } from '../theme/styles';
 
 type Props = {
@@ -28,111 +26,148 @@ export function OnboardingCard({
   onGymChange,
   onSave,
 }: Props) {
-  const setEquipment = (key: string) => {
-    onGymChange({
-      ...gym,
-      equipment: {
-        ...gym.equipment,
-        [key]: !gym.equipment[key],
+  const [step, setStep] = useState(0);
+  const firstName = profile.firstName?.trim();
+
+  const steps = useMemo(
+    () => [
+      {
+        key: 'first-name',
+        label: 'First name',
+        title: 'What should we call you?',
+        helper: 'We will use this to personalize your plan and keep the app feeling human.',
+        type: 'text' as const,
+        value: profile.firstName || '',
+        placeholder: 'First name',
+        onChange: (value: string) => onProfileChange({ ...profile, firstName: value }),
       },
-    });
-  };
+      {
+        key: 'goal',
+        label: 'Goal',
+        title: 'What are you training for?',
+        helper: 'We will tune volume, reps, and progression around this.',
+        type: 'options' as const,
+        options: ['strength', 'hypertrophy', 'fat_loss', 'general'],
+        selected: profile.goal,
+        onSelect: (value: string) => onProfileChange({ ...profile, goal: value as Goal }),
+      },
+      {
+        key: 'experience',
+        label: 'Experience',
+        title: 'How experienced are you in the gym?',
+        helper: 'This helps us decide how technical and demanding your sessions should be.',
+        type: 'options' as const,
+        options: ['beginner', 'intermediate', 'advanced'],
+        selected: profile.experience,
+        onSelect: (value: string) => onProfileChange({ ...profile, experience: value as Experience }),
+      },
+      {
+        key: 'days',
+        label: 'Days per week',
+        title: 'How many days can you realistically train?',
+        helper: 'Pick the number you can repeat consistently, not the perfect week.',
+        type: 'options' as const,
+        options: ['3', '4', '5', '6'],
+        selected: String(profile.daysPerWeek),
+        onSelect: (value: string) => onProfileChange({ ...profile, daysPerWeek: Number(value) }),
+      },
+      {
+        key: 'session-length',
+        label: 'Session length',
+        title: 'How long should a normal session take?',
+        helper: 'We will build around the time you actually have.',
+        type: 'options' as const,
+        options: ['30', '45', '60', '90'],
+        selected: String(profile.sessionLength),
+        onSelect: (value: string) => onProfileChange({ ...profile, sessionLength: Number(value) }),
+      },
+      {
+        key: 'gym-type',
+        label: 'Gym type',
+        title: 'What kind of gym are you training in most often?',
+        helper: 'We will assume a matching equipment setup for your first plan.',
+        type: 'options' as const,
+        options: ['commercial', 'home', 'hotel'],
+        selected: gym.type,
+        onSelect: (value: string) => onGymChange({ ...gym, type: value as GymType }),
+      },
+    ],
+    [profile, gym, onProfileChange, onGymChange],
+  );
+
+  const currentStep = steps[step];
+  const isFirstStep = step === 0;
+  const isLastStep = step === steps.length - 1;
 
   return (
-    <View style={[styles.card, { backgroundColor: palette.card, borderColor: palette.line }]}>
-      <SectionHeading palette={palette} eyebrow="Onboarding" title="Build your training baseline" />
-      <Text style={[styles.helperText, { color: palette.muted }]}>
-        Goal, frequency, and equipment drive the workout engine.
-      </Text>
+    <View style={[onboardingCardStyles.onboardingModal, { backgroundColor: palette.card, borderColor: palette.line }]}>
+      <View style={[onboardingCardStyles.onboardingHero, { backgroundColor: palette.panel, borderColor: palette.line }]}>
+        <View style={onboardingCardStyles.onboardingHeroTop}>
+          <View style={onboardingCardStyles.onboardingHeroCopy}>
+            <Text style={[onboardingCardStyles.onboardingWelcomeEyebrow, { color: palette.text }]}>Welcome,</Text>
+            {firstName ? (
+              <Text numberOfLines={1} style={[onboardingCardStyles.onboardingWelcomeName, { color: palette.text }]}>
+                {firstName}
+              </Text>
+            ) : null}
+            <Text style={[onboardingCardStyles.onboardingIntro, { color: palette.muted }]}>Tell us about you</Text>
+          </View>
+          <View style={onboardingCardStyles.onboardingLogoWrap}>
+            <Image source={require('../media/LoginLogo.png')} style={onboardingCardStyles.onboardingLogo} resizeMode="contain" />
+          </View>
+        </View>
+      </View>
 
-      <OptionRow
-        palette={palette}
-        label="Goal"
-        options={['strength', 'hypertrophy', 'fat_loss', 'general']}
-        selected={profile.goal}
-        onSelect={(goal) => onProfileChange({ ...profile, goal: goal as Goal })}
-      />
-      <OptionRow
-        palette={palette}
-        label="Experience"
-        options={['beginner', 'intermediate', 'advanced']}
-        selected={profile.experience}
-        onSelect={(experience) => onProfileChange({ ...profile, experience: experience as Experience })}
-      />
-      <OptionRow
-        palette={palette}
-        label="Days per week"
-        options={['3', '4', '5', '6']}
-        selected={String(profile.daysPerWeek)}
-        onSelect={(value) => onProfileChange({ ...profile, daysPerWeek: Number(value) })}
-      />
-      <OptionRow
-        palette={palette}
-        label="Session length"
-        options={['30', '45', '60', '90']}
-        selected={String(profile.sessionLength)}
-        onSelect={(value) => onProfileChange({ ...profile, sessionLength: Number(value) })}
-      />
-      <OptionRow
-        palette={palette}
-        label="Gym type"
-        options={['commercial', 'home', 'hotel']}
-        selected={gym.type}
-        onSelect={(value) => onGymChange({ ...gym, type: value as GymType })}
-      />
+      <View style={onboardingCardStyles.onboardingStepHeader}>
+        <Text style={[onboardingCardStyles.onboardingStepCount, { color: palette.accent }]}>
+          Step {step + 1} of {steps.length}
+        </Text>
+        <Text style={[onboardingCardStyles.onboardingStepTitle, { color: palette.text }]}>{currentStep.title}</Text>
+        <Text style={[onboardingCardStyles.onboardingStepHelper, { color: palette.muted }]}>{currentStep.helper}</Text>
+      </View>
 
-      <Text style={[styles.subheading, { color: palette.text }]}>Equipment</Text>
-      <View style={styles.pillGrid}>
-        {Object.entries(gym.equipment).map(([key, enabled]) => (
-          <BooleanChip
-            key={key}
-            palette={palette}
-            label={humanize(key)}
-            active={enabled}
-            onPress={() => setEquipment(key)}
+      {currentStep.type === 'text' ? (
+        <View style={styles.optionRow}>
+          <Text style={[styles.subheading, { color: palette.text }]}>{currentStep.label}</Text>
+          <TextInput
+            autoCapitalize="words"
+            autoCorrect={false}
+            placeholder={currentStep.placeholder}
+            placeholderTextColor={palette.placeholder}
+            style={[
+              styles.input,
+              onboardingCardStyles.onboardingTextInput,
+              { color: palette.text, borderColor: palette.line, backgroundColor: palette.input },
+            ]}
+            value={currentStep.value}
+            onChangeText={currentStep.onChange}
           />
-        ))}
-      </View>
-
-      <TextInput
-        keyboardType="numeric"
-        placeholder="Max dumbbell weight"
-        placeholderTextColor={palette.placeholder}
-        style={[styles.input, { color: palette.text, borderColor: palette.line, backgroundColor: palette.input }]}
-        value={String(gym.dumbbellMax)}
-        onChangeText={(value) =>
-          onGymChange({ ...gym, dumbbellMax: Number(value.replace(/[^0-9]/g, '')) || 0 })
-        }
-      />
-      <TextInput
-        placeholder="Gym notes"
-        placeholderTextColor={palette.placeholder}
-        style={[styles.input, { color: palette.text, borderColor: palette.line, backgroundColor: palette.input }]}
-        value={gym.notes}
-        onChangeText={(value) => onGymChange({ ...gym, notes: value })}
-      />
-
-      <View style={styles.dualRow}>
-        <BooleanChip
+        </View>
+      ) : (
+        <OptionRow
           palette={palette}
-          label="Smith machine"
-          active={gym.hasSmith}
-          onPress={() => onGymChange({ ...gym, hasSmith: !gym.hasSmith })}
+          label={currentStep.label}
+          options={currentStep.options}
+          selected={currentStep.selected}
+          onSelect={currentStep.onSelect}
+          columns={currentStep.options.length >= 4 ? 2 : currentStep.options.length === 3 ? 3 : 1}
         />
-        <BooleanChip
+      )}
+
+      <View style={onboardingCardStyles.onboardingFooter}>
+        <ActionButton
           palette={palette}
-          label="Hack squat"
-          active={gym.hasHackSquat}
-          onPress={() => onGymChange({ ...gym, hasHackSquat: !gym.hasHackSquat })}
+          label="Back"
+          disabled={loading || isFirstStep}
+          onPress={() => setStep((value) => Math.max(0, value - 1))}
+        />
+        <ActionButton
+          palette={palette}
+          label={isLastStep ? 'Save And Continue' : 'Continue'}
+          disabled={loading || (currentStep.type === 'text' && !currentStep.value.trim())}
+          onPress={isLastStep ? onSave : () => setStep((value) => Math.min(steps.length - 1, value + 1))}
         />
       </View>
-
-      <ActionButton
-        palette={palette}
-        label="Save And Continue"
-        disabled={loading}
-        onPress={onSave}
-      />
     </View>
   );
 }

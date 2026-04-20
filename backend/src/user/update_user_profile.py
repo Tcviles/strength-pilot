@@ -31,6 +31,7 @@ def lambda_handler(event, context):
         profile = {
             'userId': user_id,
             'email': request.get_email() or existing.get('email', ''),
+            'firstName': updates.get('firstName', existing.get('firstName')),
             'goal': updates.get('goal', existing.get('goal', 'general')),
             'experience': updates.get('experience', existing.get('experience', 'beginner')),
             'daysPerWeek': updates.get('daysPerWeek', existing.get('daysPerWeek', 3)),

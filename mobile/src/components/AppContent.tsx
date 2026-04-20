@@ -1,8 +1,8 @@
 import React from 'react';
-import { ActivityIndicator, SafeAreaView, ScrollView, StatusBar, Text, View, useColorScheme } from 'react-native';
+import { ActivityIndicator, Image, ImageBackground, SafeAreaView, ScrollView, StatusBar, Text, View, useColorScheme } from 'react-native';
 
 import { darkPalette, lightPalette } from '../theme/palette';
-import { styles } from '../theme/styles';
+import { appContentStyles } from './AppContent.styles';
 import { useAppState } from '../hooks/useAppState';
 import { useAuth } from '../hooks/useAuth';
 import { AuthCard } from './AuthCard';
@@ -64,45 +64,106 @@ export function AppContent() {
   const displayLoading = currentStage === 'auth' ? authLoading : loading;
   const displayStatus = currentStage === 'auth' ? authStatus : status;
   const displayError = currentStage === 'auth' ? authError : error;
+  const isAuthStage = currentStage === 'auth';
+  const isOnboardingStage = currentStage === 'onboarding';
+  const backgroundImageStyle = isAuthStage
+    ? appContentStyles.authBackgroundImage
+    : isOnboardingStage
+      ? appContentStyles.onboardingBackgroundImage
+      : appContentStyles.appBackgroundImage;
+  const backgroundOverlayStyle = isAuthStage
+    ? appContentStyles.authBackgroundOverlay
+    : isOnboardingStage
+      ? appContentStyles.onboardingBackgroundOverlay
+      : appContentStyles.appBackgroundOverlay;
 
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.page }]}>
+    <SafeAreaView style={[appContentStyles.safeArea, { backgroundColor: palette.page }]}>
       <StatusBar barStyle="light-content" />
-      <ScrollView contentContainerStyle={styles.scrollContent} style={{ backgroundColor: palette.page }}>
-        <View style={[styles.shell, { backgroundColor: palette.panel, borderColor: palette.line }]}>
-          <View style={styles.hero}>
-            <View style={styles.badgeRow}>
-              <View style={[styles.badge, { borderColor: palette.accentSoft, backgroundColor: palette.badge }]}>
-                <Text style={[styles.badgeText, { color: palette.accent }]}>SP</Text>
+      <View pointerEvents="none" style={appContentStyles.backgroundWrap}>
+        <ImageBackground
+          source={require('../media/AppBackground.png')}
+          style={appContentStyles.backgroundWrap}
+          imageStyle={backgroundImageStyle}
+          resizeMode="cover"
+        >
+          <View
+            style={[
+              backgroundOverlayStyle,
+              { backgroundColor: palette.page },
+            ]}
+          />
+        </ImageBackground>
+      </View>
+      <ScrollView
+        contentContainerStyle={[
+          appContentStyles.scrollContent,
+          isAuthStage ? appContentStyles.authScrollContent : null,
+          isOnboardingStage ? appContentStyles.onboardingScrollContent : null,
+        ]}
+        style={appContentStyles.stageScroll}
+      >
+        <View
+          style={[
+            appContentStyles.shell,
+            isAuthStage ? appContentStyles.authShell : null,
+            isOnboardingStage ? appContentStyles.onboardingShell : null,
+            isAuthStage || isOnboardingStage
+              ? appContentStyles.authShellTransparent
+              : { backgroundColor: palette.panel, borderColor: palette.line },
+          ]}
+        >
+          {isAuthStage ? (
+            <View style={appContentStyles.authHero}>
+              <Image source={require('../media/LoginLogo.png')} style={appContentStyles.authLogo} resizeMode="contain" />
+              <Text style={[appContentStyles.authWordmark, { color: palette.text }]}>StrengthPilot</Text>
+              <Text style={[appContentStyles.authTagline, { color: palette.muted }]}>
+                All the tools to stay on course.
+              </Text>
+            </View>
+          ) : !isOnboardingStage ? (
+            <View style={appContentStyles.hero}>
+              <View style={appContentStyles.badgeRow}>
+                <View style={[appContentStyles.badge, { borderColor: palette.accentSoft, backgroundColor: palette.badge }]}>
+                  <Text style={[appContentStyles.badgeText, { color: palette.accent }]}>SP</Text>
+                </View>
+                <View style={appContentStyles.heroCopy}>
+                  <Text style={[appContentStyles.wordmark, { color: palette.text }]}>StrengthPilot</Text>
+                  <Text style={[appContentStyles.tagline, { color: palette.muted }]}>
+                    All the tools to stay on course.
+                  </Text>
+                </View>
               </View>
-              <View style={styles.heroCopy}>
-                <Text style={[styles.wordmark, { color: palette.text }]}>StrengthPilot</Text>
-                <Text style={[styles.tagline, { color: palette.muted }]}>
-                  All the tools to stay on course.
+              <View style={[appContentStyles.missionStrip, { borderColor: palette.line, backgroundColor: palette.card }]}>
+                <Text style={[appContentStyles.missionLabel, { color: palette.accent }]}>Operating Principle</Text>
+                <Text style={[appContentStyles.missionText, { color: palette.text }]}>
+                  We are what we repeatedly do.
                 </Text>
               </View>
             </View>
-            <View style={[styles.missionStrip, { borderColor: palette.line, backgroundColor: palette.card }]}>
-              <Text style={[styles.missionLabel, { color: palette.accent }]}>Operating Principle</Text>
-              <Text style={[styles.missionText, { color: palette.text }]}>
-                We are what we repeatedly do.
-              </Text>
+          ) : null}
+
+          {(displayError || (!isAuthStage && !isOnboardingStage && displayStatus !== 'Ready') || (isAuthStage && displayStatus !== 'Ready' && displayStatus !== 'Signed in.')) && !isOnboardingStage ? (
+            <View
+              style={[
+                appContentStyles.statusCard,
+                isAuthStage ? appContentStyles.authStatusCard : null,
+                { backgroundColor: palette.card, borderColor: palette.line },
+              ]}
+            >
+              <Text style={[appContentStyles.statusText, { color: palette.text }]}>{displayStatus}</Text>
+              {displayError ? <Text style={[appContentStyles.errorText, { color: palette.error }]}>{displayError}</Text> : null}
             </View>
-          </View>
+          ) : null}
 
-          <View style={[styles.statusCard, { backgroundColor: palette.card, borderColor: palette.line }]}>
-            <Text style={[styles.statusText, { color: palette.text }]}>{displayStatus}</Text>
-            {displayError ? <Text style={[styles.errorText, { color: palette.error }]}>{displayError}</Text> : null}
-          </View>
-
-          {currentStage === 'auth' ? (
+          {isAuthStage ? (
             <AuthCard
               palette={palette}
               email={email}
               password={password}
               newPassword={newPassword}
               requiresNewPassword={requiresNewPassword}
-              loading={loading}
+              loading={authLoading}
               mode={mode}
               onEmailChange={setEmail}
               onPasswordChange={setPassword}
@@ -114,7 +175,7 @@ export function AppContent() {
             />
           ) : null}
 
-          {currentStage === 'onboarding' ? (
+          {isOnboardingStage ? (
             <OnboardingCard
               palette={palette}
               profile={draftProfile}
@@ -146,7 +207,7 @@ export function AppContent() {
           ) : null}
 
           {displayLoading ? (
-            <View style={styles.loadingRow}>
+            <View style={appContentStyles.loadingRow}>
               <ActivityIndicator color={palette.accent} />
             </View>
           ) : null}

@@ -1,7 +1,7 @@
 import React, { createContext, useCallback, useEffect, useMemo, useState } from 'react';
 
 import { CONFIG } from '../config/appConfig';
-import { DEFAULT_GYM, DEFAULT_PROFILE } from '../constants/defaults';
+import { buildGymFromType, DEFAULT_GYM, DEFAULT_PROFILE } from '../constants/defaults';
 import { apiRequest } from '../services/api';
 import type { Crowd, Gym, Profile, Workout } from '../types/app';
 import { useAuth } from '../hooks/useAuth';
@@ -90,6 +90,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         }
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Could not load your account.';
+        console.log('[StrengthPilot] Bootstrap failure', {
+          message,
+        });
         if (!cancelled) {
           if (message.includes('Profile not found') || message.includes('Gym not found')) {
             setStatus('Signed in. Let’s set up your training profile.');
@@ -119,11 +122,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setError('');
     setStatus('Saving profile and gym...');
     try {
+      const preparedGym = buildGymFromType(draftGym.type, draftGym);
       const savedGym = await apiRequest<Gym>(
         `/gyms/${CONFIG.gymId}`,
         tokens.idToken,
         'PUT',
-        draftGym,
+        preparedGym,
       );
       const savedProfile = await apiRequest<Profile>(
         '/me',
@@ -135,7 +139,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setProfile(savedProfile);
       setStatus('Onboarding complete. Ready to train.');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not save onboarding.');
+      const message = err instanceof Error ? err.message : 'Could not save onboarding.';
+      console.log('[StrengthPilot] Save onboarding failure', {
+        message,
+      });
+      setError(message);
     } finally {
       setLoading(false);
     }

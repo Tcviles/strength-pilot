@@ -11,9 +11,15 @@ type Props = {
   options: string[];
   selected: string;
   onSelect: (value: string) => void;
+  columns?: 1 | 2 | 3 | 4;
 };
 
-export function OptionRow({ palette, label, options, selected, onSelect }: Props) {
+export function OptionRow({ palette, label, options, selected, onSelect, columns }: Props) {
+  const resolvedColumns =
+    columns ?? (options.length >= 4 ? 2 : options.length === 3 ? 3 : 1);
+  const itemWidth =
+    resolvedColumns === 1 ? '100%' : resolvedColumns === 2 ? '48%' : resolvedColumns === 3 ? '31%' : '23%';
+
   return (
     <View style={styles.optionRow}>
       <Text style={[styles.subheading, { color: palette.text }]}>{label}</Text>
@@ -26,6 +32,7 @@ export function OptionRow({ palette, label, options, selected, onSelect }: Props
               onPress={() => onSelect(option)}
               style={[
                 styles.togglePill,
+                { width: itemWidth },
                 {
                   borderColor: active ? palette.accent : palette.line,
                   backgroundColor: active ? palette.badge : palette.input,

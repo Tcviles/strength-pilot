@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Pressable, Text, TextInput, View } from 'react-native';
 
 import { styles } from '../theme/styles';
@@ -39,9 +39,12 @@ export function AuthCard({
   onCompleteNewPassword,
   onSignUp,
 }: Props) {
+  const [passwordVisible, setPasswordVisible] = useState(false);
+  const [newPasswordVisible, setNewPasswordVisible] = useState(false);
+
   return (
-    <View style={[styles.card, { backgroundColor: palette.card, borderColor: palette.line }]}>
-      <SectionHeading palette={palette} eyebrow="Access" title="Get into the cockpit" />
+    <View style={[styles.authCard, { backgroundColor: palette.card, borderColor: palette.line }]}>
+      <SectionHeading palette={palette} eyebrow="Access" title="Sign in to your account" />
       <TextInput
         autoCapitalize="none"
         autoCorrect={false}
@@ -52,23 +55,47 @@ export function AuthCard({
         value={email}
         onChangeText={onEmailChange}
       />
-      <TextInput
-        secureTextEntry
-        placeholder="Password"
-        placeholderTextColor={palette.placeholder}
-        style={[styles.input, { color: palette.text, borderColor: palette.line, backgroundColor: palette.input }]}
-        value={password}
-        onChangeText={onPasswordChange}
-      />
-      {requiresNewPassword ? (
+      <View
+        style={[
+          styles.inputRow,
+          { borderColor: palette.line, backgroundColor: palette.input },
+        ]}
+      >
         <TextInput
-          secureTextEntry
-          placeholder="New permanent password"
+          secureTextEntry={!passwordVisible}
+          placeholder="Password"
           placeholderTextColor={palette.placeholder}
-          style={[styles.input, { color: palette.text, borderColor: palette.line, backgroundColor: palette.input }]}
-          value={newPassword}
-          onChangeText={onNewPasswordChange}
+          style={[styles.inputField, { color: palette.text }]}
+          value={password}
+          onChangeText={onPasswordChange}
         />
+        <Pressable onPress={() => setPasswordVisible((value) => !value)} style={styles.eyeButton}>
+          <Text style={[styles.eyeButtonText, { color: palette.accent }]}>
+            {passwordVisible ? 'Hide' : 'Show'}
+          </Text>
+        </Pressable>
+      </View>
+      {requiresNewPassword ? (
+        <View
+          style={[
+            styles.inputRow,
+            { borderColor: palette.line, backgroundColor: palette.input },
+          ]}
+        >
+          <TextInput
+            secureTextEntry={!newPasswordVisible}
+            placeholder="New permanent password"
+            placeholderTextColor={palette.placeholder}
+            style={[styles.inputField, { color: palette.text }]}
+            value={newPassword}
+            onChangeText={onNewPasswordChange}
+          />
+          <Pressable onPress={() => setNewPasswordVisible((value) => !value)} style={styles.eyeButton}>
+            <Text style={[styles.eyeButtonText, { color: palette.accent }]}>
+              {newPasswordVisible ? 'Hide' : 'Show'}
+            </Text>
+          </Pressable>
+        </View>
       ) : null}
       {requiresNewPassword ? (
         <ActionButton
@@ -92,6 +119,11 @@ export function AuthCard({
           onPress={onSignUp}
         />
       )}
+      {!requiresNewPassword && mode === 'signIn' ? (
+        <Pressable style={styles.authHelperLink}>
+          <Text style={[styles.authHelperText, { color: palette.muted }]}>Forgot password?</Text>
+        </Pressable>
+      ) : null}
       {!requiresNewPassword ? (
         <View style={styles.switchRow}>
           <Text style={[styles.switchText, { color: palette.muted }]}>

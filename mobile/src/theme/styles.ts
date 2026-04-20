@@ -1,89 +1,18 @@
 import { StyleSheet } from 'react-native';
 
 export const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
-    paddingHorizontal: 18,
-    paddingVertical: 24,
-  },
-  shell: {
-    flex: 1,
-    borderWidth: 1,
-    borderRadius: 28,
-    padding: 18,
-    gap: 16,
-  },
-  hero: {
-    gap: 14,
-  },
-  badgeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-  },
-  badge: {
-    width: 68,
-    height: 68,
-    borderRadius: 22,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  badgeText: {
-    fontSize: 28,
-    fontWeight: '900',
-    letterSpacing: -1.2,
-  },
-  heroCopy: {
-    flex: 1,
-    gap: 4,
-  },
-  wordmark: {
-    fontSize: 30,
-    fontWeight: '800',
-    letterSpacing: -0.8,
-  },
-  tagline: {
-    fontSize: 14,
-  },
-  missionStrip: {
-    borderWidth: 1,
-    borderRadius: 18,
-    padding: 14,
-    gap: 6,
-  },
-  missionLabel: {
-    fontSize: 11,
-    textTransform: 'uppercase',
-    fontWeight: '700',
-    letterSpacing: 1.1,
-  },
-  missionText: {
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  statusCard: {
-    borderWidth: 1,
-    borderRadius: 18,
-    padding: 14,
-    gap: 6,
-  },
-  statusText: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  errorText: {
-    fontSize: 13,
-    lineHeight: 18,
-  },
   card: {
     borderWidth: 1,
     borderRadius: 24,
     padding: 16,
     gap: 14,
+  },
+  authCard: {
+    borderWidth: 1,
+    borderRadius: 28,
+    padding: 22,
+    gap: 14,
+    marginHorizontal: 8,
   },
   sectionHeading: {
     gap: 4,
@@ -110,7 +39,33 @@ export const styles = StyleSheet.create({
     paddingVertical: 14,
     fontSize: 16,
   },
+  inputRow: {
+    borderWidth: 1,
+    borderRadius: 16,
+    minHeight: 56,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingLeft: 14,
+    paddingRight: 8,
+  },
+  inputField: {
+    flex: 1,
+    fontSize: 16,
+    paddingVertical: 14,
+  },
+  eyeButton: {
+    minWidth: 52,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 8,
+  },
+  eyeButtonText: {
+    fontSize: 13,
+    fontWeight: '700',
+  },
   button: {
+    flex: 1,
     minHeight: 54,
     borderRadius: 16,
     alignItems: 'center',
@@ -130,6 +85,13 @@ export const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 6,
   },
+  authHelperLink: {
+    alignItems: 'center',
+    marginTop: -2,
+  },
+  authHelperText: {
+    fontSize: 14,
+  },
   switchText: {
     fontSize: 14,
   },
@@ -148,12 +110,16 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
+    justifyContent: 'space-between',
   },
   togglePill: {
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderRadius: 999,
     borderWidth: 1,
+    minHeight: 52,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   toggleLabel: {
     fontSize: 13,
@@ -214,9 +180,5 @@ export const styles = StyleSheet.create({
   },
   exerciseMeta: {
     fontSize: 13,
-  },
-  loadingRow: {
-    paddingVertical: 8,
-    alignItems: 'center',
   },
 });

@@ -12,6 +12,7 @@ export type Tokens = {
 export type Profile = {
   userId?: string;
   email?: string;
+  firstName?: string;
   goal: Goal;
   experience: Experience;
   daysPerWeek: number;

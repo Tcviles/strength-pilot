@@ -27,6 +27,15 @@ type AuthContextValue = {
 
 export const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
+function maskEmail(value: string) {
+  const [name, domain] = value.split('@');
+  if (!name || !domain) {
+    return value;
+  }
+  const visible = name.slice(0, 2);
+  return `${visible}${'*'.repeat(Math.max(name.length - 2, 1))}@${domain}`;
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [mode, setMode] = useState<AuthMode>('signIn');
   const [tokens, setTokens] = useState<Tokens | null>(null);
@@ -44,6 +53,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setError('');
     setStatus('Signing in...');
     try {
+      console.log('[StrengthPilot] Sign-in attempt', {
+        email: maskEmail(email.trim()),
+        passwordLength: password.length,
+      });
+
       const response = await cognitoRequest('AWSCognitoIdentityProviderService.InitiateAuth', {
         AuthFlow: 'USER_PASSWORD_AUTH',
         ClientId: CONFIG.userPoolClientId,
@@ -54,6 +68,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
 
       if (response.ChallengeName === 'NEW_PASSWORD_REQUIRED') {
+        console.log('[StrengthPilot] Sign-in challenge', {
+          challengeName: response.ChallengeName,
+        });
         setAuthSession(response.Session || '');
         setRequiresNewPassword(true);
         setStatus('Set your permanent password to continue.');
@@ -70,10 +87,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         accessToken: authTokens.AccessToken,
         refreshToken: authTokens.RefreshToken,
       });
+      console.log('[StrengthPilot] Sign-in success', {
+        email: maskEmail(email.trim()),
+      });
       setStatus('Signed in.');
       return 'Signed in.';
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unable to sign in.';
+      console.log('[StrengthPilot] Sign-in failure', {
+        email: maskEmail(email.trim()),
+        message,
+      });
       setError(message);
       throw err;
     } finally {
@@ -86,6 +110,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setError('');
     setStatus('Completing first sign in...');
     try {
+      console.log('[StrengthPilot] Completing new password challenge', {
+        email: maskEmail(email.trim()),
+        newPasswordLength: newPassword.length,
+      });
+
       const response = await cognitoRequest(
         'AWSCognitoIdentityProviderService.RespondToAuthChallenge',
         {
@@ -111,10 +140,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         accessToken: authTokens.AccessToken,
         refreshToken: authTokens.RefreshToken,
       });
+      console.log('[StrengthPilot] New password challenge complete', {
+        email: maskEmail(email.trim()),
+      });
       setStatus('Password locked in.');
       return 'Password locked in.';
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unable to update password.';
+      console.log('[StrengthPilot] New password challenge failed', {
+        email: maskEmail(email.trim()),
+        message,
+      });
       setError(message);
       throw err;
     } finally {
@@ -127,6 +163,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setError('');
     setStatus('Creating account...');
     try {
+      console.log('[StrengthPilot] Sign-up attempt', {
+        email: maskEmail(email.trim()),
+        passwordLength: password.length,
+      });
+
       await cognitoRequest('AWSCognitoIdentityProviderService.SignUp', {
         ClientId: CONFIG.userPoolClientId,
         Username: email.trim(),
@@ -134,10 +175,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         UserAttributes: [{ Name: 'email', Value: email.trim() }],
       });
       setMode('signIn');
+      console.log('[StrengthPilot] Sign-up success', {
+        email: maskEmail(email.trim()),
+      });
       setStatus('Account created. Sign in to continue.');
       return 'Account created. Sign in to continue.';
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unable to sign up.';
+      console.log('[StrengthPilot] Sign-up failure', {
+        email: maskEmail(email.trim()),
+        message,
+      });
       setError(message);
       throw err;
     } finally {
