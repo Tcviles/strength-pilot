@@ -1,0 +1,286 @@
+{
+  "info": {
+    "_postman_id": "f3a6ce77-a955-4ba1-a36c-f6ebc5f51e84",
+    "name": "StrengthPilot API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Postman collection for the deployed StrengthPilot Phase 1 backend."
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{idToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://fvxzzcze0c.execute-api.us-east-1.amazonaws.com/dev"
+    },
+    {
+      "key": "gymId",
+      "value": "default"
+    },
+    {
+      "key": "workoutId",
+      "value": ""
+    },
+    {
+      "key": "idToken",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Profile",
+      "item": [
+        {
+          "name": "Get Me",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/me",
+            "description": "Fetch the current user's profile."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Me",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"goal\": \"strength\",\n  \"experience\": \"intermediate\",\n  \"daysPerWeek\": 4,\n  \"sessionLength\": 60,\n  \"activeGymId\": \"{{gymId}}\",\n  \"painAreas\": [],\n  \"permanentLimitations\": []\n}"
+            },
+            "url": "{{baseUrl}}/me",
+            "description": "Create or update the current user's training profile."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Gym",
+      "item": [
+        {
+          "name": "Get Default Gym",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/gyms/{{gymId}}",
+            "description": "Fetch a saved gym profile."
+          },
+          "response": []
+        },
+        {
+          "name": "Upsert Default Gym",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Home Base\",\n  \"type\": \"commercial\",\n  \"equipment\": {\n    \"barbell\": true,\n    \"bench\": true,\n    \"rack\": true,\n    \"dumbbell\": true,\n    \"cable\": true,\n    \"machine\": true,\n    \"pullup_bar\": true\n  },\n  \"dumbbellMax\": 100,\n  \"hasSmith\": true,\n  \"hasHackSquat\": false,\n  \"notes\": \"Busy after work\"\n}"
+            },
+            "url": "{{baseUrl}}/gyms/{{gymId}}",
+            "description": "Create or update the default gym and equipment inventory."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Workouts",
+      "item": [
+        {
+          "name": "Generate Workout",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "var data = pm.response.json();",
+                  "if (data && data.result && data.result.workout && data.result.workout.workoutId) {",
+                  "  pm.collectionVariables.set('workoutId', data.result.workout.workoutId);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"dayIndex\": 0,\n  \"limitedTime\": false,\n  \"gymCrowdedness\": \"medium\",\n  \"mood\": \"ready\"\n}"
+            },
+            "url": "{{baseUrl}}/workouts/generate",
+            "description": "Generate a workout using the current profile and active gym. Saves workoutId into collection variables."
+          },
+          "response": []
+        },
+        {
+          "name": "Swap Exercise",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentExerciseId\": \"barbell-bench-press\",\n  \"reason\": \"unavailable\",\n  \"gymId\": \"{{gymId}}\"\n}"
+            },
+            "url": "{{baseUrl}}/workouts/swap",
+            "description": "Find a substitute for the current exercise."
+          },
+          "response": []
+        },
+        {
+          "name": "Log Set",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"exerciseId\": \"barbell-bench-press\",\n  \"setNumber\": 1,\n  \"weight\": 185,\n  \"reps\": 8,\n  \"rir\": 2,\n  \"markWorkoutComplete\": false\n}"
+            },
+            "url": "{{baseUrl}}/workouts/{{workoutId}}/sets",
+            "description": "Log or overwrite one set inside a generated workout."
+          },
+          "response": []
+        },
+        {
+          "name": "List Workouts",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/workouts?limit=20",
+            "description": "List recent workouts ordered by completedAt."
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
