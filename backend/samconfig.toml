@@ -12,4 +12,7 @@ capabilities = "CAPABILITY_IAM"
 confirm_changeset = true
 resolve_s3 = true
 region = "us-east-1"
-s3_prefix = "strength-pilot"
+s3_prefix = "strength-pilot-dev"
+profile = "personal"
+parameter_overrides = "Stage=\"dev\""
+image_repositories = []
