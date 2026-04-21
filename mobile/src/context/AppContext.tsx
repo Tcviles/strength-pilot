@@ -3,14 +3,27 @@ import React, { createContext, useCallback, useEffect, useMemo, useState } from 
 import { CONFIG } from '../config/appConfig';
 import { buildGymFromType, DEFAULT_GYM, DEFAULT_PROFILE } from '../constants/defaults';
 import { apiRequest } from '../services/api';
+import { getStoredObject, removeStoredValue, setStoredObject, STORAGE_KEYS } from '../services/storage';
 import type { Crowd, Gym, Profile, Workout } from '../types/app';
 import { useAuth } from '../hooks/useAuth';
+
+type PersistedWorkoutSession = {
+  workout: Workout | null;
+  focus: string;
+  currentScreen: 'home' | 'workout';
+  workoutStartedAt: string | null;
+  crowd: Crowd;
+  mood: string;
+};
 
 type AppContextValue = {
   profile: Profile | null;
   gym: Gym | null;
   workout: Workout | null;
   focus: string;
+  bootstrapping: boolean;
+  hydratingSession: boolean;
+  needsOnboarding: boolean;
   currentScreen: 'home' | 'workout';
   workoutStartedAt: string | null;
   draftProfile: Profile;
@@ -34,11 +47,14 @@ type AppContextValue = {
 export const AppContext = createContext<AppContextValue | undefined>(undefined);
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
-  const { tokens } = useAuth();
+  const { tokens, hydrating: authHydrating } = useAuth();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [gym, setGym] = useState<Gym | null>(null);
   const [workout, setWorkout] = useState<Workout | null>(null);
   const [focus, setFocus] = useState('');
+  const [bootstrapping, setBootstrapping] = useState(false);
+  const [hydratingSession, setHydratingSession] = useState(true);
+  const [needsOnboarding, setNeedsOnboarding] = useState(false);
   const [currentScreen, setCurrentScreen] = useState<'home' | 'workout'>('home');
   const [workoutStartedAt, setWorkoutStartedAt] = useState<string | null>(null);
   const [status, setStatus] = useState('Ready');
@@ -48,6 +64,48 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [draftGym, setDraftGym] = useState<Gym>(DEFAULT_GYM);
   const [crowd, setCrowd] = useState<Crowd>('medium');
   const [mood, setMood] = useState('Ready');
+
+  useEffect(() => {
+    if (authHydrating) {
+      return;
+    }
+
+    if (!tokens?.idToken) {
+      setHydratingSession(false);
+      return;
+    }
+
+    const storedSession = getStoredObject<PersistedWorkoutSession>(STORAGE_KEYS.workoutSession);
+    if (storedSession) {
+      setWorkout(storedSession.workout);
+      setFocus(storedSession.focus);
+      setCurrentScreen(storedSession.currentScreen);
+      setWorkoutStartedAt(storedSession.workoutStartedAt);
+      setCrowd(storedSession.crowd);
+      setMood(storedSession.mood);
+    }
+    setHydratingSession(false);
+  }, [tokens?.idToken, authHydrating]);
+
+  useEffect(() => {
+    if (authHydrating || hydratingSession) {
+      return;
+    }
+
+    if (!tokens?.idToken) {
+      removeStoredValue(STORAGE_KEYS.workoutSession);
+      return;
+    }
+
+    setStoredObject<PersistedWorkoutSession>(STORAGE_KEYS.workoutSession, {
+      workout,
+      focus,
+      currentScreen,
+      workoutStartedAt,
+      crowd,
+      mood,
+    });
+  }, [tokens?.idToken, authHydrating, hydratingSession, workout, focus, currentScreen, workoutStartedAt, crowd, mood]);
 
   const persistDraftSettings = useCallback(async () => {
     if (!tokens?.idToken) {
@@ -73,11 +131,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [tokens?.idToken, draftGym, draftProfile]);
 
   useEffect(() => {
+    if (authHydrating) {
+      return;
+    }
+
     if (!tokens?.idToken) {
       setProfile(null);
       setGym(null);
       setWorkout(null);
       setFocus('');
+      setBootstrapping(false);
+      setHydratingSession(false);
+      setNeedsOnboarding(false);
       setCurrentScreen('home');
       setWorkoutStartedAt(null);
       setDraftProfile(DEFAULT_PROFILE);
@@ -93,6 +158,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     let cancelled = false;
 
     const bootstrap = async () => {
+      setBootstrapping(true);
       setLoading(true);
       setError('');
       try {
@@ -104,10 +170,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (!cancelled) {
           setProfile(profileRes);
           setGym(gymRes);
+          setNeedsOnboarding(false);
           setDraftProfile({
             ...DEFAULT_PROFILE,
             ...profileRes,
             activeGymId: profileRes.activeGymId || CONFIG.gymId,
+            splitPreference: profileRes.splitPreference || DEFAULT_PROFILE.splitPreference,
             painAreas: profileRes.painAreas || [],
             permanentLimitations: profileRes.permanentLimitations || [],
           });
@@ -127,6 +195,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         });
         if (!cancelled) {
           if (message.includes('Profile not found') || message.includes('Gym not found')) {
+            setNeedsOnboarding(true);
             setStatus('Signed in. Let’s set up your training profile.');
           } else {
             setError(message);
@@ -134,6 +203,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         }
       } finally {
         if (!cancelled) {
+          setBootstrapping(false);
           setLoading(false);
         }
       }
@@ -143,7 +213,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [tokens?.idToken]);
+  }, [tokens?.idToken, authHydrating]);
 
   const saveOnboarding = useCallback(async () => {
     if (!tokens?.idToken) {
@@ -163,6 +233,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         firstName: draftProfile.firstName || null,
       });
       await persistDraftSettings();
+      setNeedsOnboarding(false);
       console.log('[StrengthPilot] Save onboarding success', {
         gymId: CONFIG.gymId,
         activeGymId: CONFIG.gymId,
@@ -249,6 +320,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       gym,
       workout,
       focus,
+      bootstrapping,
+      hydratingSession,
+      needsOnboarding,
       currentScreen,
       workoutStartedAt,
       draftProfile,
@@ -273,6 +347,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       gym,
       workout,
       focus,
+      bootstrapping,
+      hydratingSession,
+      needsOnboarding,
       currentScreen,
       workoutStartedAt,
       draftProfile,

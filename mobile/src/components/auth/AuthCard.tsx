@@ -45,6 +45,7 @@ export function AuthCard() {
       <TextInput
         autoCapitalize="none"
         autoCorrect={false}
+        editable={!loading}
         keyboardType="email-address"
         placeholder="Email address"
         placeholderTextColor={palette.placeholder}
@@ -60,6 +61,7 @@ export function AuthCard() {
           ]}
         >
           <TextInput
+            editable={!loading}
             placeholder="Verification code"
             placeholderTextColor={palette.placeholder}
             style={[styles.inputField, { color: palette.text }]}
@@ -75,6 +77,7 @@ export function AuthCard() {
           ]}
         >
           <TextInput
+            editable={!loading}
             secureTextEntry={!passwordVisible}
             placeholder="Password"
             placeholderTextColor={palette.placeholder}
@@ -82,7 +85,7 @@ export function AuthCard() {
             value={password}
             onChangeText={onPasswordChange}
           />
-          <Pressable onPress={() => setPasswordVisible((value) => !value)} style={styles.eyeButton}>
+          <Pressable disabled={loading} onPress={() => setPasswordVisible((value) => !value)} style={styles.eyeButton}>
             <Text style={[styles.eyeButtonText, { color: palette.accent }]}>
               {passwordVisible ? 'Hide' : 'Show'}
             </Text>
@@ -97,6 +100,7 @@ export function AuthCard() {
           ]}
         >
           <TextInput
+            editable={!loading}
             secureTextEntry={!newPasswordVisible}
             placeholder="New permanent password"
             placeholderTextColor={palette.placeholder}
@@ -104,7 +108,7 @@ export function AuthCard() {
             value={newPassword}
             onChangeText={onNewPasswordChange}
           />
-          <Pressable onPress={() => setNewPasswordVisible((value) => !value)} style={styles.eyeButton}>
+          <Pressable disabled={loading} onPress={() => setNewPasswordVisible((value) => !value)} style={styles.eyeButton}>
             <Text style={[styles.eyeButtonText, { color: palette.accent }]}>
               {newPasswordVisible ? 'Hide' : 'Show'}
             </Text>
@@ -120,6 +124,7 @@ export function AuthCard() {
             ]}
           >
             <TextInput
+              editable={!loading}
               secureTextEntry={!resetPasswordVisible}
               placeholder="New password"
               placeholderTextColor={palette.placeholder}
@@ -127,7 +132,7 @@ export function AuthCard() {
               value={resetPassword}
               onChangeText={onResetPasswordChange}
             />
-            <Pressable onPress={() => setResetPasswordVisible((value) => !value)} style={styles.eyeButton}>
+            <Pressable disabled={loading} onPress={() => setResetPasswordVisible((value) => !value)} style={styles.eyeButton}>
               <Text style={[styles.eyeButtonText, { color: palette.accent }]}>
                 {resetPasswordVisible ? 'Hide' : 'Show'}
               </Text>
@@ -140,6 +145,7 @@ export function AuthCard() {
             ]}
           >
             <TextInput
+              editable={!loading}
               secureTextEntry={!resetPasswordConfirmVisible}
               placeholder="Confirm new password"
               placeholderTextColor={palette.placeholder}
@@ -147,7 +153,7 @@ export function AuthCard() {
               value={resetPasswordConfirm}
               onChangeText={onResetPasswordConfirmChange}
             />
-            <Pressable onPress={() => setResetPasswordConfirmVisible((value) => !value)} style={styles.eyeButton}>
+            <Pressable disabled={loading} onPress={() => setResetPasswordConfirmVisible((value) => !value)} style={styles.eyeButton}>
               <Text style={[styles.eyeButtonText, { color: palette.accent }]}>
                 {resetPasswordConfirmVisible ? 'Hide' : 'Show'}
               </Text>
@@ -187,12 +193,12 @@ export function AuthCard() {
         />
       )}
       {!requiresNewPassword && mode === 'signIn' ? (
-        <Pressable style={styles.authHelperLink} onPress={onStartForgotPassword}>
+        <Pressable disabled={loading} style={styles.authHelperLink} onPress={onStartForgotPassword}>
           <Text style={[styles.authHelperText, { color: palette.muted }]}>Forgot password?</Text>
         </Pressable>
       ) : null}
       {isForgotPassword ? (
-        <Pressable style={styles.authHelperLink} onPress={onCancelForgotPassword}>
+        <Pressable disabled={loading} style={styles.authHelperLink} onPress={onCancelForgotPassword}>
           <Text style={[styles.authHelperText, { color: palette.muted }]}>Back to sign in</Text>
         </Pressable>
       ) : null}
@@ -201,7 +207,7 @@ export function AuthCard() {
           <Text style={[styles.switchText, { color: palette.muted }]}>
             {mode === 'signIn' ? 'Need an account?' : 'Already have an account?'}
           </Text>
-          <Pressable onPress={() => onModeChange(mode === 'signIn' ? 'signUp' : 'signIn')}>
+          <Pressable disabled={loading} onPress={() => onModeChange(mode === 'signIn' ? 'signUp' : 'signIn')}>
             <Text style={[styles.switchLink, { color: palette.accent }]}>
               {mode === 'signIn' ? 'Sign up' : 'Sign in'}
             </Text>

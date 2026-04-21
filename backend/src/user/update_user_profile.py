@@ -34,6 +34,7 @@ def lambda_handler(event, context):
             'firstName': updates.get('firstName', existing.get('firstName')),
             'goal': updates.get('goal', existing.get('goal', 'general')),
             'experience': updates.get('experience', existing.get('experience', 'beginner')),
+            'splitPreference': updates.get('splitPreference', existing.get('splitPreference', 'auto')),
             'daysPerWeek': updates.get('daysPerWeek', existing.get('daysPerWeek', 3)),
             'sessionLength': updates.get('sessionLength', existing.get('sessionLength', 60)),
             'activeGymId': updates.get('activeGymId', existing.get('activeGymId')),

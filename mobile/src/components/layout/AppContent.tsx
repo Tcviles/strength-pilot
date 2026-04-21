@@ -18,14 +18,18 @@ export function AppContent() {
   const { palette } = useTheme();
   const {
     tokens,
+    hydrating: authHydrating,
     status: authStatus,
     error: authError,
     loading: authLoading,
   } = useAuth();
   const {
+    workout,
+    bootstrapping,
+    hydratingSession,
+    needsOnboarding,
     profile,
     gym,
-    workout,
     currentScreen,
     status,
     error,
@@ -34,17 +38,18 @@ export function AppContent() {
     openWorkout,
   } = useAppState();
 
-  const currentStage = !tokens
+  const shouldStayOnAuthStage = !tokens || bootstrapping || (!needsOnboarding && (!profile || !gym));
+  const currentStage = shouldStayOnAuthStage
     ? 'auth'
-    : !profile || !gym
+    : needsOnboarding
       ? 'onboarding'
       : currentScreen === 'workout' && workout
         ? 'workout'
         : 'home';
 
-  const displayLoading = currentStage === 'auth' ? authLoading : loading;
-  const displayStatus = currentStage === 'auth' ? authStatus : status;
-  const displayError = currentStage === 'auth' ? authError : error;
+  const displayLoading = !tokens ? authLoading : loading;
+  const displayStatus = !tokens ? authStatus : status;
+  const displayError = !tokens ? authError : error;
   const isAuthStage = currentStage === 'auth';
   const isOnboardingStage = currentStage === 'onboarding';
   const isTabletLike = width >= 700;
@@ -57,6 +62,8 @@ export function AppContent() {
   const authTextLogoWidth = isTabletLike ? 320 : 224;
   const authTextLogoHeight = isTabletLike ? 62 : 44;
   const authTaglineFontSize = isTabletLike ? 22 : 14;
+  const authStatusBannerTextColor = displayError ? '#fff' : palette.text;
+  const authStatusBannerTextStyle = { color: authStatusBannerTextColor };
   const backgroundImageStyle = isAuthStage
     ? appContentStyles.authBackgroundImage
     : isOnboardingStage
@@ -67,6 +74,46 @@ export function AppContent() {
     : isOnboardingStage
       ? appContentStyles.onboardingBackgroundOverlay
       : appContentStyles.appBackgroundOverlay;
+  const showStartupLoader = authHydrating || hydratingSession;
+
+  if (showStartupLoader) {
+    return (
+      <SafeAreaView
+        edges={['top']}
+        style={[appContentStyles.safeArea, { backgroundColor: palette.page }]}
+      >
+        <StatusBar barStyle="light-content" />
+        <View pointerEvents="none" style={appContentStyles.backgroundWrap}>
+          <ImageBackground
+            source={require('../../media/AppBackground.png')}
+            style={appContentStyles.backgroundWrap}
+            imageStyle={appContentStyles.authBackgroundImage}
+            resizeMode="cover"
+          >
+            <View
+              style={[
+                appContentStyles.authBackgroundOverlay,
+                { backgroundColor: palette.page },
+              ]}
+            />
+          </ImageBackground>
+        </View>
+        <View style={appContentStyles.startupLoaderWrap}>
+          <View style={[appContentStyles.startupLoaderCard, { backgroundColor: palette.card, borderColor: palette.line }]}>
+            <Image
+              source={require('../../media/LoginLogo.png')}
+              style={appContentStyles.startupLoaderLogo}
+              resizeMode="contain"
+            />
+            <ActivityIndicator color={palette.accent} size="large" />
+            <Text style={[appContentStyles.startupLoaderText, { color: palette.text }]}>
+              Restoring your session...
+            </Text>
+          </View>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView
@@ -119,16 +166,24 @@ export function AppContent() {
                   All the tools to stay on course.
                 </Text>
               </View>
-              {(displayError || (isAuthStage && displayStatus !== 'Ready' && displayStatus !== 'Signed in.')) ? (
+              {(displayError || displayStatus !== 'Ready') ? (
                 <View
                   style={[
-                    appContentStyles.statusCard,
-                    appContentStyles.authStatusCard,
-                    { backgroundColor: palette.card, borderColor: palette.line },
+                    appContentStyles.authStatusBanner,
+                    {
+                      backgroundColor: displayError ? palette.error : palette.panel,
+                      borderColor: displayError ? palette.error : palette.line,
+                    },
                   ]}
                 >
-                  <Text style={[appContentStyles.statusText, { color: palette.text }]}>{displayStatus}</Text>
-                  {displayError ? <Text style={[appContentStyles.errorText, { color: palette.error }]}>{displayError}</Text> : null}
+                  <Text
+                    style={[
+                      appContentStyles.authStatusBannerText,
+                      authStatusBannerTextStyle,
+                    ]}
+                  >
+                    {displayError || displayStatus}
+                  </Text>
                 </View>
               ) : null}
               <AuthCard />

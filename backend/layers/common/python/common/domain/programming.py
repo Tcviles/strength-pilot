@@ -2,12 +2,23 @@ from typing import List, Optional, Dict
 from .exercises import EXERCISES, EXERCISE_BY_ID, Exercise
 
 
-SPLITS: Dict[int, List[str]] = {
+AUTO_SPLITS: Dict[int, List[str]] = {
+    1: ['full_body'],
     2: ['full_body', 'full_body'],
     3: ['full_body', 'full_body', 'full_body'],
     4: ['upper', 'lower', 'upper', 'lower'],
     5: ['push', 'pull', 'legs', 'upper', 'lower'],
     6: ['push', 'pull', 'legs', 'push', 'pull', 'legs'],
+    7: ['push', 'pull', 'legs', 'upper', 'lower', 'push', 'pull'],
+}
+
+SPLIT_PREFERENCE_SPLITS: Dict[int, List[str]] = {
+    1: ['full_body'],
+    2: ['upper', 'lower'],
+    3: ['push', 'pull', 'legs'],
+    5: ['push', 'pull', 'legs', 'upper', 'lower'],
+    6: ['push', 'pull', 'legs', 'push', 'pull', 'legs'],
+    7: ['push', 'pull', 'legs', 'upper', 'lower', 'push', 'pull'],
 }
 
 FOCUS_MUSCLES: Dict[str, List[str]] = {
@@ -29,8 +40,21 @@ EXPERIENCE_RANK: Dict[str, int] = {'beginner': 0, 'intermediate': 1, 'advanced':
 PLACEMENT_ORDER: Dict[str, int] = {'opener': 0, 'any': 1, 'mid': 2, 'finisher': 3}
 
 
-def select_split(days_per_week: int) -> List[str]:
-    return SPLITS.get(days_per_week, SPLITS[3])
+def select_split(days_per_week: int, split_preference: str = 'auto', goal: str = 'general') -> List[str]:
+    normalized_days = max(days_per_week, 1)
+
+    if split_preference == 'full_body':
+        return ['full_body'] * normalized_days
+
+    if split_preference == 'split':
+        if normalized_days == 4:
+            if goal == 'strength':
+                return ['upper', 'lower', 'upper', 'lower']
+            return ['chest_tri', 'back_bi', 'legs', 'shoulders_arms']
+
+        return SPLIT_PREFERENCE_SPLITS.get(normalized_days, SPLIT_PREFERENCE_SPLITS[3])
+
+    return AUTO_SPLITS.get(normalized_days, AUTO_SPLITS[3])
 
 
 def can_use_exercise(exercise: Exercise, gym_equipment: Dict[str, bool], experience: str) -> bool:

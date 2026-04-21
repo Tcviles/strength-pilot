@@ -2,6 +2,7 @@ export type Goal = 'strength' | 'hypertrophy' | 'fat_loss' | 'general';
 export type Experience = 'beginner' | 'intermediate' | 'advanced';
 export type GymType = 'commercial' | 'home' | 'hotel';
 export type Crowd = 'low' | 'medium' | 'high';
+export type SplitPreference = 'auto' | 'full_body' | 'split';
 
 export type Tokens = {
   idToken: string;
@@ -15,6 +16,7 @@ export type Profile = {
   firstName?: string;
   goal: Goal;
   experience: Experience;
+  splitPreference: SplitPreference;
   daysPerWeek: number;
   sessionLength: number;
   activeGymId: string;

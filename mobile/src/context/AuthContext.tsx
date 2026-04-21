@@ -1,7 +1,8 @@
-import React, { createContext, useCallback, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useEffect, useMemo, useState } from 'react';
 
 import { CONFIG } from '../config/appConfig';
 import { cognitoRequest } from '../services/api';
+import { getStoredObject, removeStoredValue, setStoredObject, STORAGE_KEYS } from '../services/storage';
 import type { Tokens } from '../types/app';
 
 type AuthMode = 'signIn' | 'signUp';
@@ -17,6 +18,7 @@ type AuthContextValue = {
   resetPasswordConfirm: string;
   requiresNewPassword: boolean;
   forgotPasswordStep: 0 | 1 | 2;
+  hydrating: boolean;
   loading: boolean;
   status: string;
   error: string;
@@ -59,9 +61,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [authSession, setAuthSession] = useState('');
   const [requiresNewPassword, setRequiresNewPassword] = useState(false);
   const [forgotPasswordStep, setForgotPasswordStep] = useState<0 | 1 | 2>(0);
+  const [hydrating, setHydrating] = useState(true);
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState('Ready');
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    const storedTokens = getStoredObject<Tokens>(STORAGE_KEYS.authTokens);
+    if (storedTokens?.idToken && storedTokens?.accessToken) {
+      setTokens(storedTokens);
+      setStatus('Signed in.');
+    }
+    setHydrating(false);
+  }, []);
+
+  useEffect(() => {
+    if (hydrating) {
+      return;
+    }
+
+    if (tokens?.idToken && tokens.accessToken) {
+      setStoredObject(STORAGE_KEYS.authTokens, tokens);
+      return;
+    }
+
+    removeStoredValue(STORAGE_KEYS.authTokens);
+  }, [tokens, hydrating]);
 
   const resetForgotPasswordState = useCallback(() => {
     setResetCode('');
@@ -328,6 +353,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       resetPasswordConfirm,
       requiresNewPassword,
       forgotPasswordStep,
+      hydrating,
       loading,
       status,
       error,
@@ -357,6 +383,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       resetPasswordConfirm,
       requiresNewPassword,
       forgotPasswordStep,
+      hydrating,
       loading,
       status,
       error,

@@ -3,7 +3,7 @@ import { Image, Text, TextInput, View } from 'react-native';
 
 import { useAppState } from '../../hooks/useAppState';
 import { useTheme } from '../../hooks/useTheme';
-import type { Experience, Goal, GymType } from '../../types/app';
+import type { Experience, Goal, GymType, SplitPreference } from '../../types/app';
 import { ActionButton } from '../shared/ActionButton';
 import { OptionRow } from '../shared/OptionRow';
 import { onboardingCardStyles } from './OnboardingCard.styles';
@@ -55,6 +55,16 @@ export function OnboardingCard() {
         options: ['beginner', 'intermediate', 'advanced'],
         selected: profile.experience,
         onSelect: (value: string) => onProfileChange({ ...profile, experience: value as Experience }),
+      },
+      {
+        key: 'split-preference',
+        label: 'Workout style',
+        title: 'Do you prefer full body or split workouts?',
+        helper: 'Choose what feels best. Auto lets StrengthPilot decide based on your schedule.',
+        type: 'options' as const,
+        options: ['auto', 'full_body', 'split'],
+        selected: profile.splitPreference,
+        onSelect: (value: string) => onProfileChange({ ...profile, splitPreference: value as SplitPreference }),
       },
       {
         key: 'days',

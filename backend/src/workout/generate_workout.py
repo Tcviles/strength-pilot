@@ -54,7 +54,11 @@ def lambda_handler(event, context):
         ]
 
         days_per_week = int(user.get('daysPerWeek', 3))
-        split = select_split(days_per_week)
+        split = select_split(
+            days_per_week,
+            user.get('splitPreference', 'auto'),
+            user.get('goal', 'general'),
+        )
         day_index = body.get('dayIndex')
         if day_index is None:
             day_index = len(recent) % len(split)

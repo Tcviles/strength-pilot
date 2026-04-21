@@ -5,6 +5,7 @@ export const DEFAULT_PROFILE: Profile = {
   firstName: '',
   goal: 'strength',
   experience: 'intermediate',
+  splitPreference: 'auto',
   daysPerWeek: 4,
   sessionLength: 60,
   activeGymId: CONFIG.gymId,
