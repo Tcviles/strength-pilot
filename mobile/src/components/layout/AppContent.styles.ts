@@ -18,6 +18,9 @@ export const appContentStyles = StyleSheet.create({
     paddingTop: 0,
     paddingBottom: 10,
   },
+  workoutScrollContent: {
+    paddingTop: 8,
+  },
   authStageWrap: {
     width: '100%',
     alignSelf: 'center',

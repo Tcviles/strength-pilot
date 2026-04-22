@@ -7,10 +7,15 @@ import { appContentStyles } from './AppContent.styles';
 import { useAppState } from '../../hooks/useAppState';
 import { useAuth } from '../../hooks/useAuth';
 import { AuthCard } from '../auth/AuthCard';
+import { GuestHomeCard } from '../home/GuestHomeCard';
 import { FooterNav } from '../navigation/FooterNav';
 import { HomeCard } from '../home/HomeCard';
+import { LibraryCard } from '../library/LibraryCard';
 import { OnboardingCard } from '../onboarding/OnboardingCard';
+import { ProfileCard } from '../profile/ProfileCard';
+import { FeaturePlaceholderCard } from '../shared/FeaturePlaceholderCard';
 import { WorkoutCard } from '../workout/WorkoutCard';
+import { WorkoutTopBar } from '../workout/WorkoutTopBar';
 
 export function AppContent() {
   const insets = useSafeAreaInsets();
@@ -31,21 +36,33 @@ export function AppContent() {
     profile,
     gym,
     currentScreen,
+    isGuestMode,
     status,
     error,
     loading,
     backHome,
+    navigateToScreen,
     openWorkout,
   } = useAppState();
 
-  const shouldStayOnAuthStage = !tokens || bootstrapping || (!needsOnboarding && (!profile || !gym));
-  const currentStage = shouldStayOnAuthStage
-    ? 'auth'
-    : needsOnboarding
-      ? 'onboarding'
+  const showStartupLoader =
+    authHydrating ||
+    hydratingSession ||
+    (Boolean(tokens?.idToken) && bootstrapping && !needsOnboarding && (!profile || !gym));
+
+  const currentStage = needsOnboarding
+    ? 'onboarding'
+    : currentScreen === 'profile'
+      ? (tokens ? 'profile' : 'auth')
       : currentScreen === 'workout' && workout
         ? 'workout'
-        : 'home';
+        : currentScreen === 'progress'
+          ? 'progress'
+          : currentScreen === 'library'
+            ? 'library'
+            : isGuestMode
+              ? 'guest-home'
+              : 'home';
 
   const displayLoading = !tokens ? authLoading : loading;
   const displayStatus = !tokens ? authStatus : status;
@@ -54,7 +71,18 @@ export function AppContent() {
   const isOnboardingStage = currentStage === 'onboarding';
   const isTabletLike = width >= 700;
   const hasStickyFooter = !isAuthStage && !isOnboardingStage;
-  const activeTab = currentStage === 'workout' ? 'workout' : 'home';
+  const hasProfileFooter = currentStage === 'auth';
+  const shouldShowFooter = hasStickyFooter || hasProfileFooter;
+  const hasStickyWorkoutBar = currentStage === 'workout' && Boolean(workout);
+  const activeTab = currentStage === 'workout'
+    ? 'workout'
+    : currentStage === 'profile' || currentStage === 'auth'
+      ? 'profile'
+      : currentStage === 'progress'
+        ? 'progress'
+        : currentStage === 'library'
+          ? 'library'
+          : 'home';
   const authStageWidth = isTabletLike ? Math.min(width - 72, 860) : undefined;
   const authViewportMinHeight = Math.max(0, height - insets.top);
   const authLogoWidth = isTabletLike ? 360 : 252;
@@ -74,7 +102,6 @@ export function AppContent() {
     : isOnboardingStage
       ? appContentStyles.onboardingBackgroundOverlay
       : appContentStyles.appBackgroundOverlay;
-  const showStartupLoader = authHydrating || hydratingSession;
 
   if (showStartupLoader) {
     return (
@@ -136,16 +163,20 @@ export function AppContent() {
           />
         </ImageBackground>
       </View>
+      {hasStickyWorkoutBar ? <WorkoutTopBar /> : null}
       <ScrollView
+        showsVerticalScrollIndicator={false}
+        showsHorizontalScrollIndicator={false}
         contentContainerStyle={[
           appContentStyles.scrollContent,
           isAuthStage
             ? [appContentStyles.authScrollContent, { minHeight: authViewportMinHeight }]
             : null,
           isOnboardingStage ? appContentStyles.onboardingScrollContent : null,
-          hasStickyFooter
+          shouldShowFooter
             ? { paddingBottom: 110 + Math.max(insets.bottom, 12) }
             : null,
+          hasStickyWorkoutBar ? appContentStyles.workoutScrollContent : null,
         ]}
         style={appContentStyles.stageScroll}
       >
@@ -188,29 +219,9 @@ export function AppContent() {
               ) : null}
               <AuthCard />
             </View>
-          ) : !isOnboardingStage && currentStage !== 'home' ? (
-            <View style={appContentStyles.hero}>
-              <View style={appContentStyles.badgeRow}>
-                <View style={[appContentStyles.badge, { borderColor: palette.accentSoft, backgroundColor: palette.badge }]}>
-                  <Text style={[appContentStyles.badgeText, { color: palette.accent }]}>SP</Text>
-                </View>
-                <View style={appContentStyles.heroCopy}>
-                  <Text style={[appContentStyles.wordmark, { color: palette.text }]}>StrengthPilot</Text>
-                  <Text style={[appContentStyles.tagline, { color: palette.muted }]}>
-                    All the tools to stay on course.
-                  </Text>
-                </View>
-              </View>
-              <View style={[appContentStyles.missionStrip, { borderColor: palette.line, backgroundColor: palette.card }]}>
-                <Text style={[appContentStyles.missionLabel, { color: palette.accent }]}>Operating Principle</Text>
-                <Text style={[appContentStyles.missionText, { color: palette.text }]}>
-                  We are what we repeatedly do.
-                </Text>
-              </View>
-            </View>
           ) : null}
 
-          {(displayError || (!isAuthStage && !isOnboardingStage && displayStatus !== 'Ready' && displayStatus !== 'Signed in and synced.')) && !isOnboardingStage ? (
+          {(displayError || (!isAuthStage && !isOnboardingStage && displayStatus !== 'Ready' && displayStatus !== 'Signed in and synced.')) && !isOnboardingStage && !isAuthStage && currentStage !== 'workout' ? (
             <View
               style={[
                 appContentStyles.statusCard,
@@ -226,7 +237,23 @@ export function AppContent() {
 
           {currentStage === 'home' ? <HomeCard /> : null}
 
+          {currentStage === 'guest-home' ? <GuestHomeCard /> : null}
+
           {currentStage === 'workout' && workout ? <WorkoutCard /> : null}
+
+          {currentStage === 'profile' ? <ProfileCard /> : null}
+
+          {currentStage === 'progress' ? (
+            <FeaturePlaceholderCard
+              eyebrow={isGuestMode ? 'HISTORY' : 'PROGRESS'}
+              title={isGuestMode ? 'Guest workout history is coming next.' : 'Progress tracking is on deck.'}
+              body={isGuestMode
+                ? 'This is where your recently run guest workouts and quick replays will live.'
+                : 'We’ll stack streaks, weekly volume, and body-part progress here once the workout flow is locked in.'}
+            />
+          ) : null}
+
+          {currentStage === 'library' ? <LibraryCard /> : null}
 
           {displayLoading ? (
             <View style={appContentStyles.loadingRow}>
@@ -234,7 +261,7 @@ export function AppContent() {
             </View>
           ) : null}
       </ScrollView>
-      {hasStickyFooter ? (
+      {shouldShowFooter ? (
         <View style={appContentStyles.footerDock}>
           <FooterNav
             activeTab={activeTab}
@@ -243,6 +270,8 @@ export function AppContent() {
                 backHome();
               } else if (tab === 'workout') {
                 openWorkout();
+              } else {
+                navigateToScreen(tab);
               }
             }}
           />

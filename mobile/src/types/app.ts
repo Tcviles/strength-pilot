@@ -50,6 +50,23 @@ export type WorkoutExercise = {
   }>;
 };
 
+export type WorkoutSetProgress = {
+  setNumber: number;
+  suggestedWeight: number;
+  suggestedReps: number;
+  actualWeight: string;
+  actualReps: string;
+  completed: boolean;
+  completedAt?: string;
+  feedbackScore?: number;
+  feedbackDismissed?: boolean;
+};
+
+export type WorkoutExerciseProgress = {
+  exerciseId: string;
+  setProgress: WorkoutSetProgress[];
+};
+
 export type Workout = {
   workoutId: string;
   goal: Goal;

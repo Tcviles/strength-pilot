@@ -1,8 +1,9 @@
 import React from 'react';
-import { Image, Pressable, Text, View } from 'react-native';
+import { Image, Text, View } from 'react-native';
 
 import { useTheme } from '../../hooks/useTheme';
 import { ActionButton } from '../shared/ActionButton';
+import { PreferencesButton } from '../shared/PreferencesButton';
 import { homeHeroCardStyles } from './HomeHeroCard.styles';
 
 type Props = {
@@ -50,9 +51,9 @@ export function HomeHeroCard({
         ) : (
           <View style={homeHeroCardStyles.homeTimerPlaceholder} />
         )}
-        <Pressable onPress={onOpenPreferences} style={homeHeroCardStyles.homeHeaderActions}>
-          <Text style={[homeHeroCardStyles.homeHeaderDots, { color: palette.muted }]}>...</Text>
-        </Pressable>
+        <View style={homeHeroCardStyles.homeHeaderActions}>
+          <PreferencesButton onPress={onOpenPreferences} />
+        </View>
       </View>
 
       <View style={[homeHeroCardStyles.homeHero, { backgroundColor: palette.card, borderColor: palette.line }]}>

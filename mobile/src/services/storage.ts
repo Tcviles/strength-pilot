@@ -1,33 +1,55 @@
-import { createMMKV } from 'react-native-mmkv';
+import * as Keychain from 'react-native-keychain';
 
-const storage = createMMKV({
-  id: 'strength-pilot',
-});
-
-export const STORAGE_KEYS = {
-  authTokens: 'auth.tokens',
-  workoutSession: 'workout.session',
+const STORAGE_SERVICES = {
+  workoutSession: 'strength-pilot-workout-session',
+  guestPreferences: 'strength-pilot-guest-preferences',
 } as const;
 
-export function setStoredObject<T>(key: string, value: T) {
-  storage.set(key, JSON.stringify(value));
+const STORAGE_ACCOUNT = 'app-state';
+
+export const STORAGE_KEYS = {
+  workoutSession: 'workoutSession',
+  guestPreferences: 'guestPreferences',
+} as const;
+
+function getServiceForKey(key: string) {
+  return STORAGE_SERVICES[key as keyof typeof STORAGE_SERVICES];
 }
 
-export function getStoredObject<T>(key: string): T | null {
-  const rawValue = storage.getString(key);
-  if (!rawValue) {
+export async function setStoredObject<T>(key: string, value: T) {
+  const service = getServiceForKey(key);
+  if (!service) {
+    return;
+  }
+
+  await Keychain.setGenericPassword(STORAGE_ACCOUNT, JSON.stringify(value), {
+    service,
+  });
+}
+
+export async function getStoredObject<T>(key: string): Promise<T | null> {
+  const service = getServiceForKey(key);
+  if (!service) {
+    return null;
+  }
+
+  const credentials = await Keychain.getGenericPassword({ service });
+  if (!credentials) {
     return null;
   }
 
   try {
-    return JSON.parse(rawValue) as T;
+    return JSON.parse(credentials.password) as T;
   } catch {
     return null;
   }
 }
 
-export function removeStoredValue(key: string) {
-  storage.remove(key);
-}
+export async function removeStoredValue(key: string) {
+  const service = getServiceForKey(key);
+  if (!service) {
+    return;
+  }
 
-export { storage };
+  await Keychain.resetGenericPassword({ service });
+}

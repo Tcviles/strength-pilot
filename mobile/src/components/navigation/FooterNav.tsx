@@ -11,7 +11,7 @@ type Props = {
   onSelect?: (tab: TabId) => void;
 };
 
-const TABS: Array<{ id: TabId; label: string; icon: string }> = [
+const SIGNED_IN_TABS: Array<{ id: TabId; label: string; icon: string }> = [
   { id: 'home', label: 'Home', icon: '⌂' },
   { id: 'workout', label: 'Workout', icon: '◉' },
   { id: 'progress', label: 'Progress', icon: '✚' },
@@ -30,7 +30,7 @@ export function FooterNav({ activeTab, onSelect }: Props) {
       ]}
     >
       <View style={footerNavStyles.footerRow}>
-        {TABS.map((tab) => {
+        {SIGNED_IN_TABS.map((tab) => {
           const active = tab.id === activeTab;
 
           return (

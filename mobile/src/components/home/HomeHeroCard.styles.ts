@@ -32,7 +32,8 @@ export const homeHeroCardStyles = StyleSheet.create({
     width: 74,
   },
   homeHeaderActions: {
-    width: 28,
+    width: 52,
+    height: 52,
     alignItems: 'flex-end',
     justifyContent: 'center',
   },

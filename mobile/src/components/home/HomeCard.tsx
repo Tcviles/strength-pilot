@@ -1,13 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { Modal, Pressable, Text, TextInput, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 
 import { useAppState } from '../../hooks/useAppState';
 import { useTheme } from '../../hooks/useTheme';
 import { humanize } from '../../utils/format';
 import { HomeHeroCard } from './HomeHeroCard';
 import { homeCardStyles } from './HomeCard.styles';
-import { ActionButton } from '../shared/ActionButton';
-import { OptionRow } from '../shared/OptionRow';
+import { WorkoutPreferencesModal } from '../shared/WorkoutPreferencesModal';
 
 function formatElapsed(startedAt: string, now: number) {
   const elapsedSeconds = Math.max(0, Math.floor((now - new Date(startedAt).getTime()) / 1000));
@@ -119,55 +118,20 @@ export function HomeCard() {
         ))}
       </View>
 
-      <Modal visible={isPreferencesOpen} animationType="fade" transparent onRequestClose={() => setIsPreferencesOpen(false)}>
-        <View style={homeCardStyles.modalBackdrop}>
-          <Pressable style={homeCardStyles.modalScrim} onPress={() => setIsPreferencesOpen(false)} />
-          <View style={[homeCardStyles.preferencesCard, { backgroundColor: palette.card, borderColor: palette.line }]}>
-            <Text style={[homeCardStyles.preferencesEyebrow, { color: palette.accent }]}>TODAY&apos;S CONTROLS</Text>
-            <Text style={[homeCardStyles.preferencesTitle, { color: palette.text }]}>Tune today&apos;s recommendation</Text>
-
-            <OptionRow
-              label="Goal"
-              options={['strength', 'hypertrophy', 'fat_loss', 'general']}
-              selected={draftProfile.goal}
-              onSelect={(value) => setDraftProfile({ ...draftProfile, goal: value as typeof draftProfile.goal })}
-            />
-            <OptionRow
-              label="Session length"
-              options={['30', '45', '60', '90']}
-              selected={String(draftProfile.sessionLength)}
-              onSelect={(value) => setDraftProfile({ ...draftProfile, sessionLength: Number(value) })}
-            />
-            <OptionRow
-              label="Gym type"
-              options={['commercial', 'home', 'hotel']}
-              selected={draftGym.type}
-              onSelect={(value) => setDraftGym({ ...draftGym, type: value as typeof draftGym.type })}
-            />
-            <OptionRow
-              label="Crowd"
-              options={['low', 'medium', 'high']}
-              selected={crowd}
-              onSelect={(value) => setCrowd(value as typeof crowd)}
-            />
-            <View style={homeCardStyles.preferencesInputWrap}>
-              <Text style={[homeCardStyles.preferencesInputLabel, { color: palette.text }]}>Mood</Text>
-              <TextInput
-                placeholder="How are you feeling?"
-                placeholderTextColor={palette.placeholder}
-                style={[homeCardStyles.preferencesInput, { color: palette.text, borderColor: palette.line, backgroundColor: palette.input }]}
-                value={mood}
-                onChangeText={setMood}
-              />
-            </View>
-
-            <View style={homeCardStyles.preferencesFooter}>
-              <ActionButton label="Close" onPress={() => setIsPreferencesOpen(false)} />
-              <ActionButton label={loading ? 'Updating...' : 'Update'} disabled={loading} onPress={handleUpdatePreferences} />
-            </View>
-          </View>
-        </View>
-      </Modal>
+      <WorkoutPreferencesModal
+        visible={isPreferencesOpen}
+        loading={loading}
+        draftProfile={draftProfile}
+        draftGym={draftGym}
+        crowd={crowd}
+        mood={mood}
+        onClose={() => setIsPreferencesOpen(false)}
+        onSave={handleUpdatePreferences}
+        setDraftProfile={setDraftProfile}
+        setDraftGym={setDraftGym}
+        setCrowd={setCrowd}
+        setMood={setMood}
+      />
     </>
   );
 }

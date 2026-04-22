@@ -12,6 +12,7 @@ export function AuthCard() {
     mode,
     email,
     password,
+    confirmPassword,
     newPassword,
     resetCode,
     resetPassword,
@@ -22,6 +23,7 @@ export function AuthCard() {
     setMode: onModeChange,
     setEmail: onEmailChange,
     setPassword: onPasswordChange,
+    setConfirmPassword: onConfirmPasswordChange,
     setNewPassword: onNewPasswordChange,
     setResetCode: onResetCodeChange,
     setResetPassword: onResetPasswordChange,
@@ -35,6 +37,7 @@ export function AuthCard() {
     signUp,
   } = useAuth();
   const [passwordVisible, setPasswordVisible] = useState(false);
+  const [confirmPasswordVisible, setConfirmPasswordVisible] = useState(false);
   const [newPasswordVisible, setNewPasswordVisible] = useState(false);
   const [resetPasswordVisible, setResetPasswordVisible] = useState(false);
   const [resetPasswordConfirmVisible, setResetPasswordConfirmVisible] = useState(false);
@@ -92,6 +95,29 @@ export function AuthCard() {
           </Pressable>
         </View>
       )}
+      {!requiresNewPassword && !isForgotPassword && mode === 'signUp' ? (
+        <View
+          style={[
+            styles.inputRow,
+            { borderColor: palette.line, backgroundColor: palette.input },
+          ]}
+        >
+          <TextInput
+            editable={!loading}
+            secureTextEntry={!confirmPasswordVisible}
+            placeholder="Confirm password"
+            placeholderTextColor={palette.placeholder}
+            style={[styles.inputField, { color: palette.text }]}
+            value={confirmPassword}
+            onChangeText={onConfirmPasswordChange}
+          />
+          <Pressable disabled={loading} onPress={() => setConfirmPasswordVisible((value) => !value)} style={styles.eyeButton}>
+            <Text style={[styles.eyeButtonText, { color: palette.accent }]}>
+              {confirmPasswordVisible ? 'Hide' : 'Show'}
+            </Text>
+          </Pressable>
+        </View>
+      ) : null}
       {requiresNewPassword ? (
         <View
           style={[
@@ -188,7 +214,7 @@ export function AuthCard() {
       ) : (
         <ActionButton
           label="Create Account"
-          disabled={loading || !email || !password}
+          disabled={loading || !email || !password || !confirmPassword}
           onPress={() => signUp().catch(() => undefined)}
         />
       )}

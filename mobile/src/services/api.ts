@@ -15,6 +15,21 @@ function sanitizeBody(body?: object) {
 
   const cloned = JSON.parse(JSON.stringify(body)) as Record<string, unknown>;
 
+  if (
+    'AuthParameters' in cloned &&
+    cloned.AuthParameters &&
+    typeof cloned.AuthParameters === 'object' &&
+    !Array.isArray(cloned.AuthParameters)
+  ) {
+    const authParameters = cloned.AuthParameters as Record<string, unknown>;
+    if ('PASSWORD' in authParameters) {
+      authParameters.PASSWORD = '[REDACTED]';
+    }
+    if ('NEW_PASSWORD' in authParameters) {
+      authParameters.NEW_PASSWORD = '[REDACTED]';
+    }
+  }
+
   if ('PASSWORD' in cloned) {
     cloned.PASSWORD = '[REDACTED]';
   }
@@ -106,22 +121,37 @@ export async function apiRequest<T>(
 }
 
 export async function cognitoRequest(target: string, payload: object) {
+  const url = COGNITO_ENDPOINT;
   logDebug('Cognito request', {
+    url,
     target,
     payload: sanitizeBody(payload),
   });
 
-  const response = await fetch(COGNITO_ENDPOINT, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-amz-json-1.1',
-      'X-Amz-Target': target,
-    },
-    body: JSON.stringify(payload),
-  });
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-amz-json-1.1',
+        'X-Amz-Target': target,
+      },
+      body: JSON.stringify(payload),
+    });
+  } catch (err) {
+    const errorSummary = summarizeError(err);
+    logDebug('Cognito network failure', {
+      url,
+      target,
+      payload: sanitizeBody(payload),
+      error: errorSummary,
+    });
+    throw new Error(`Network request failed for Cognito ${target}: ${errorSummary.message}`);
+  }
 
   const data = await response.json().catch(() => ({}));
   logDebug('Cognito response', {
+    url,
     target,
     ok: response.ok,
     status: response.status,

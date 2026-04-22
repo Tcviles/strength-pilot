@@ -2,7 +2,7 @@ import React, { createContext, useCallback, useEffect, useMemo, useState } from 
 
 import { CONFIG } from '../config/appConfig';
 import { cognitoRequest } from '../services/api';
-import { getStoredObject, removeStoredValue, setStoredObject, STORAGE_KEYS } from '../services/storage';
+import { clearSecureTokens, getSecureTokens, setSecureTokens } from '../services/secureAuthStorage';
 import type { Tokens } from '../types/app';
 
 type AuthMode = 'signIn' | 'signUp';
@@ -12,6 +12,7 @@ type AuthContextValue = {
   tokens: Tokens | null;
   email: string;
   password: string;
+  confirmPassword: string;
   newPassword: string;
   resetCode: string;
   resetPassword: string;
@@ -25,6 +26,7 @@ type AuthContextValue = {
   setMode: (value: AuthMode) => void;
   setEmail: (value: string) => void;
   setPassword: (value: string) => void;
+  setConfirmPassword: (value: string) => void;
   setNewPassword: (value: string) => void;
   setResetCode: (value: string) => void;
   setResetPassword: (value: string) => void;
@@ -36,6 +38,7 @@ type AuthContextValue = {
   signIn: () => Promise<string>;
   completeNewPassword: () => Promise<string>;
   signUp: () => Promise<string>;
+  signOut: () => void;
 };
 
 export const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -54,6 +57,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [tokens, setTokens] = useState<Tokens | null>(null);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [resetCode, setResetCode] = useState('');
   const [resetPassword, setResetPassword] = useState('');
@@ -67,12 +71,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    const storedTokens = getStoredObject<Tokens>(STORAGE_KEYS.authTokens);
-    if (storedTokens?.idToken && storedTokens?.accessToken) {
-      setTokens(storedTokens);
-      setStatus('Signed in.');
-    }
-    setHydrating(false);
+    let cancelled = false;
+
+    const hydrateTokens = async () => {
+      const storedTokens = await getSecureTokens();
+      if (!cancelled && storedTokens?.idToken && storedTokens?.accessToken) {
+        setTokens(storedTokens);
+        setStatus('Signed in.');
+      }
+      if (!cancelled) {
+        setHydrating(false);
+      }
+    };
+
+    hydrateTokens().catch(() => {
+      if (!cancelled) {
+        setHydrating(false);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -80,12 +100,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    if (tokens?.idToken && tokens.accessToken) {
-      setStoredObject(STORAGE_KEYS.authTokens, tokens);
-      return;
-    }
+    const persistTokens = async () => {
+      if (tokens?.idToken && tokens.accessToken) {
+        await setSecureTokens(tokens);
+        return;
+      }
 
-    removeStoredValue(STORAGE_KEYS.authTokens);
+      await clearSecureTokens();
+    };
+
+    persistTokens().catch(() => undefined);
   }, [tokens, hydrating]);
 
   const resetForgotPasswordState = useCallback(() => {
@@ -96,6 +120,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const setModeWithReset = useCallback((value: AuthMode) => {
     setMode(value);
+    setConfirmPassword('');
     setForgotPasswordStep(0);
     resetForgotPasswordState();
     setError('');
@@ -227,6 +252,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [authSession, email, newPassword]);
 
   const signUp = useCallback(async () => {
+    if (password.length < 8) {
+      const message = 'Password must be at least 8 characters.';
+      setError(message);
+      throw new Error(message);
+    }
+
+    if (password !== confirmPassword) {
+      const message = 'Passwords do not match.';
+      setError(message);
+      throw new Error(message);
+    }
+
     setLoading(true);
     setError('');
     setStatus('Creating account...');
@@ -243,6 +280,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         UserAttributes: [{ Name: 'email', Value: email.trim() }],
       });
       setMode('signIn');
+      setConfirmPassword('');
       console.log('[StrengthPilot] Sign-up success', {
         email: maskEmail(email.trim()),
       });
@@ -259,7 +297,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setLoading(false);
     }
-  }, [email, password]);
+  }, [confirmPassword, email, password]);
 
   const requestPasswordReset = useCallback(async () => {
     setLoading(true);
@@ -341,12 +379,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [email, resetCode, resetPassword, resetPasswordConfirm, resetForgotPasswordState]);
 
+  const signOut = useCallback(() => {
+    setTokens(null);
+    setRequiresNewPassword(false);
+    setAuthSession('');
+    setForgotPasswordStep(0);
+    setConfirmPassword('');
+    setNewPassword('');
+    resetForgotPasswordState();
+    setMode('signIn');
+    setStatus('Signed out.');
+    setError('');
+  }, [resetForgotPasswordState]);
+
   const value = useMemo(
     () => ({
       mode,
       tokens,
       email,
       password,
+      confirmPassword,
       newPassword,
       resetCode,
       resetPassword,
@@ -360,6 +412,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setMode: setModeWithReset,
       setEmail,
       setPassword,
+      setConfirmPassword,
       setNewPassword,
       setResetCode,
       setResetPassword,
@@ -371,12 +424,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       signIn,
       completeNewPassword,
       signUp,
+      signOut,
     }),
     [
       mode,
       tokens,
       email,
       password,
+      confirmPassword,
       newPassword,
       resetCode,
       resetPassword,
@@ -395,6 +450,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       signIn,
       completeNewPassword,
       signUp,
+      signOut,
     ],
   );
 
