@@ -1,0 +1,328 @@
+import { StyleSheet } from 'react-native';
+
+export const workoutPreviewCardStyles = StyleSheet.create({
+  screen: {
+    gap: 16,
+  },
+  card: {
+    borderWidth: 1,
+    borderRadius: 24,
+    padding: 16,
+    gap: 14,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  headerCopy: {
+    flex: 1,
+    gap: 6,
+  },
+  eyebrow: {
+    fontSize: 12,
+    fontWeight: '800',
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+  },
+  title: {
+    fontSize: 28,
+    lineHeight: 32,
+    fontWeight: '900',
+    letterSpacing: -0.8,
+  },
+  subtitle: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  editButton: {
+    borderWidth: 1,
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  editButtonText: {
+    fontSize: 13,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+  },
+  statsRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  statCard: {
+    flex: 1,
+    borderWidth: 1,
+    borderRadius: 18,
+    padding: 14,
+    gap: 6,
+  },
+  statLabel: {
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+  },
+  statValue: {
+    fontSize: 24,
+    lineHeight: 28,
+    fontWeight: '900',
+    letterSpacing: -0.6,
+  },
+  listWrap: {
+    borderWidth: 1,
+    borderRadius: 20,
+    overflow: 'hidden',
+  },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderTopWidth: 1,
+  },
+  firstRow: {
+    borderTopWidth: 0,
+  },
+  rowIndex: {
+    width: 18,
+    fontSize: 16,
+    fontWeight: '800',
+    textAlign: 'center',
+  },
+  rowCopy: {
+    flex: 1,
+    gap: 4,
+  },
+  rowTitle: {
+    fontSize: 17,
+    lineHeight: 20,
+    fontWeight: '800',
+    letterSpacing: -0.3,
+  },
+  rowMeta: {
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  rowHandle: {
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  rowHandleButton: {
+    paddingHorizontal: 4,
+    paddingVertical: 4,
+  },
+  footerRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  secondaryAction: {
+    flex: 1,
+    minHeight: 54,
+    borderWidth: 1,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 18,
+  },
+  secondaryActionText: {
+    fontSize: 16,
+    fontWeight: '800',
+    letterSpacing: 0.2,
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(5, 8, 12, 0.78)',
+    justifyContent: 'center',
+    padding: 18,
+  },
+  modalCard: {
+    borderWidth: 1,
+    borderRadius: 26,
+    padding: 18,
+    gap: 14,
+    maxHeight: '92%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  modalTitle: {
+    flex: 1,
+    fontSize: 24,
+    lineHeight: 28,
+    fontWeight: '900',
+    letterSpacing: -0.6,
+  },
+  closeButton: {
+    width: 38,
+    height: 38,
+    borderWidth: 1,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  closeButtonText: {
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  modalHint: {
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  modalList: {
+    gap: 10,
+  },
+  insertButton: {
+    borderWidth: 1,
+    borderRadius: 14,
+    minHeight: 42,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 12,
+  },
+  insertButtonText: {
+    fontSize: 13,
+    fontWeight: '800',
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
+  },
+  editRow: {
+    borderWidth: 1,
+    borderRadius: 18,
+    padding: 14,
+    gap: 10,
+  },
+  editRowTop: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+  },
+  editRowNumber: {
+    width: 18,
+    fontSize: 16,
+    fontWeight: '800',
+    textAlign: 'center',
+  },
+  editRowCopy: {
+    flex: 1,
+    gap: 4,
+  },
+  editRowTitle: {
+    fontSize: 17,
+    fontWeight: '800',
+  },
+  editRowMeta: {
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  editRowActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  iconAction: {
+    width: 34,
+    height: 34,
+    borderWidth: 1,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  iconActionText: {
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  setStepperRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  setStepperLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  setStepper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  setStepperButton: {
+    width: 34,
+    height: 34,
+    borderWidth: 1,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  setStepperButtonText: {
+    fontSize: 18,
+    fontWeight: '800',
+  },
+  setStepperValue: {
+    minWidth: 24,
+    fontSize: 18,
+    fontWeight: '800',
+    textAlign: 'center',
+  },
+  addExerciseButton: {
+    borderWidth: 1,
+    borderRadius: 16,
+    minHeight: 50,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 14,
+  },
+  addExerciseButtonText: {
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  modalFooter: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  searchInput: {
+    borderWidth: 1,
+    borderRadius: 16,
+    minHeight: 48,
+    paddingHorizontal: 14,
+    fontSize: 16,
+  },
+  exerciseChoice: {
+    borderWidth: 1,
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  exerciseChoiceCopy: {
+    flex: 1,
+    gap: 4,
+  },
+  exerciseChoiceTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  exerciseChoiceMeta: {
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  exerciseChoiceButton: {
+    width: 34,
+    height: 34,
+    borderWidth: 1,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  exerciseChoiceButtonText: {
+    fontSize: 18,
+    fontWeight: '800',
+  },
+});
