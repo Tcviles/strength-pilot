@@ -9,12 +9,14 @@ from common.models.api_response import APIResponse
 from common.models.request_event import RequestEvent
 from common.utils.logger import setup_logger
 from common.domain.programming import pick_exercises, select_split
+from common.services.exercise_library import ExerciseLibraryService
 
 logger = setup_logger('generate-workout')
 
 users_service = DynamoConnection(os.getenv('USERS_TABLE'))
 gyms_service = DynamoConnection(os.getenv('GYMS_TABLE'))
 workouts_service = DynamoConnection(os.getenv('WORKOUTS_TABLE'))
+exercise_library = ExerciseLibraryService()
 
 
 def lambda_handler(event, context):
@@ -74,6 +76,7 @@ def lambda_handler(event, context):
             limited_time=bool(body.get('limitedTime', False)),
             gym_crowdedness=body.get('gymCrowdedness', 'low'),
             recent_exercise_ids=recent_exercise_ids,
+            exercises=exercise_library.list_exercises(),
         )
 
         workout = {

@@ -39,6 +39,27 @@ export const workoutTopBarStyles = StyleSheet.create({
     alignItems: 'flex-end',
     gap: 4,
   },
+  navRow: {
+    flexDirection: 'row',
+    gap: 6,
+    marginBottom: 2,
+  },
+  navButton: {
+    width: 30,
+    height: 30,
+    borderWidth: 1,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  navButtonDisabled: {
+    opacity: 0.45,
+  },
+  navButtonText: {
+    fontSize: 20,
+    fontWeight: '800',
+    lineHeight: 20,
+  },
   timerValue: {
     fontSize: 22,
     fontWeight: '800',

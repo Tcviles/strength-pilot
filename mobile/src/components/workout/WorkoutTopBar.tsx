@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 
 import { getExerciseMeta } from '../../constants/exercises';
 import { useAppState } from '../../hooks/useAppState';
@@ -22,7 +22,7 @@ function formatClock(seconds: number) {
 
 export function WorkoutTopBar() {
   const { palette } = useTheme();
-  const { workout, workoutStartedAt, activeExerciseIndex, focus } = useAppState();
+  const { workout, workoutStartedAt, activeExerciseIndex, focus, setActiveExerciseIndex } = useAppState();
   const [now, setNow] = useState(Date.now());
 
   useEffect(() => {
@@ -46,6 +46,8 @@ export function WorkoutTopBar() {
   const elapsed = workoutStartedAt
     ? formatClock(Math.floor((now - new Date(workoutStartedAt).getTime()) / 1000))
     : '00:00';
+  const canGoPrev = activeExerciseIndex > 0;
+  const canGoNext = activeExerciseIndex < workout.exercises.length - 1;
 
   return (
     <View style={workoutTopBarStyles.barWrap}>
@@ -65,6 +67,44 @@ export function WorkoutTopBar() {
           </Text>
         </View>
         <View style={workoutTopBarStyles.right}>
+          <View style={workoutTopBarStyles.navRow}>
+            <Pressable
+              onPress={() => canGoPrev && setActiveExerciseIndex(activeExerciseIndex - 1)}
+              disabled={!canGoPrev}
+              style={[
+                workoutTopBarStyles.navButton,
+                { backgroundColor: palette.panel, borderColor: palette.line },
+                !canGoPrev ? workoutTopBarStyles.navButtonDisabled : null,
+              ]}
+            >
+              <Text
+                style={[
+                  workoutTopBarStyles.navButtonText,
+                  { color: canGoPrev ? palette.text : palette.muted },
+                ]}
+              >
+                ‹
+              </Text>
+            </Pressable>
+            <Pressable
+              onPress={() => canGoNext && setActiveExerciseIndex(activeExerciseIndex + 1)}
+              disabled={!canGoNext}
+              style={[
+                workoutTopBarStyles.navButton,
+                { backgroundColor: palette.panel, borderColor: palette.line },
+                !canGoNext ? workoutTopBarStyles.navButtonDisabled : null,
+              ]}
+            >
+              <Text
+                style={[
+                  workoutTopBarStyles.navButtonText,
+                  { color: canGoNext ? palette.text : palette.muted },
+                ]}
+              >
+                ›
+              </Text>
+            </Pressable>
+          </View>
           <Text style={[workoutTopBarStyles.timerValue, { color: palette.text }]}>{elapsed}</Text>
           <Text style={[workoutTopBarStyles.timerLabel, { color: palette.muted }]}>workout clock</Text>
         </View>

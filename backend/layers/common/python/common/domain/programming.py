@@ -1,5 +1,7 @@
-from typing import List, Optional, Dict
-from .exercises import EXERCISES, EXERCISE_BY_ID, Exercise
+from typing import Dict, List, Optional
+
+from .canonical_exercises import CanonicalExercise as Exercise
+from .exercises import EXERCISES as LEGACY_EXERCISES
 
 
 AUTO_SPLITS: Dict[int, List[str]] = {
@@ -37,7 +39,34 @@ EXERCISES_PER_SESSION: Dict[int, int] = {30: 4, 45: 5, 60: 6, 90: 8}
 
 EXPERIENCE_RANK: Dict[str, int] = {'beginner': 0, 'intermediate': 1, 'advanced': 2}
 
-PLACEMENT_ORDER: Dict[str, int] = {'opener': 0, 'any': 1, 'mid': 2, 'finisher': 3}
+PLACEMENT_ORDER: Dict[str, int] = {'warm_up': 0, 'opener': 1, 'any': 2, 'mid': 3, 'finisher': 4}
+
+DEFAULT_EXERCISES: List[Exercise] = [
+    Exercise.from_record({
+        'exerciseId': exercise.id,
+        'name': exercise.name,
+        'aliases': [exercise.name.lower()],
+        'primaryMuscles': [exercise.primary],
+        'secondaryMuscles': exercise.secondary,
+        'compound': exercise.compound,
+        'pattern': exercise.pattern,
+        'equipment': exercise.equipment,
+        'fatigue': exercise.fatigue,
+        'minLevel': exercise.min_level,
+        'placement': exercise.placement,
+        'alternatives': exercise.substitutes,
+        'formCues': exercise.form_cues,
+        'tips': exercise.form_cues,
+    })
+    for exercise in LEGACY_EXERCISES
+]
+DEFAULT_EXERCISE_BY_ID: Dict[str, Exercise] = {
+    exercise.exercise_id: exercise for exercise in DEFAULT_EXERCISES
+}
+
+
+def _normalize_token(value: str) -> str:
+    return str(value or '').strip().lower()
 
 
 def select_split(days_per_week: int, split_preference: str = 'auto', goal: str = 'general') -> List[str]:
@@ -60,7 +89,7 @@ def select_split(days_per_week: int, split_preference: str = 'auto', goal: str =
 def can_use_exercise(exercise: Exercise, gym_equipment: Dict[str, bool], experience: str) -> bool:
     if EXPERIENCE_RANK[exercise.min_level] > EXPERIENCE_RANK[experience]:
         return False
-    return all(gym_equipment.get(eq) is True for eq in exercise.equipment)
+    return all(eq == 'bodyweight' or gym_equipment.get(eq) is True for eq in exercise.equipment)
 
 
 def get_set_rep_scheme(goal: str, exercise: Exercise) -> Dict:
@@ -88,19 +117,26 @@ def pick_exercises(
     limited_time: bool = False,
     gym_crowdedness: str = 'low',
     recent_exercise_ids: Optional[List[str]] = None,
+    exercises: Optional[List[Exercise]] = None,
 ) -> List[Dict]:
     pain_areas = pain_areas or []
     recent_exercise_ids = recent_exercise_ids or []
+    exercises = exercises or DEFAULT_EXERCISES
 
-    target_muscles = [m for m in FOCUS_MUSCLES[focus] if m not in pain_areas]
+    pain_area_set = {_normalize_token(area) for area in pain_areas}
+    target_muscles = [
+        muscle for muscle in FOCUS_MUSCLES[focus]
+        if _normalize_token(muscle) not in pain_area_set
+    ]
+    target_muscle_set = {_normalize_token(muscle) for muscle in target_muscles}
     target_count = (max(3, EXERCISES_PER_SESSION[session_length] - 2)
                     if limited_time else EXERCISES_PER_SESSION[session_length])
 
     candidates = [
-        e for e in EXERCISES
-        if e.primary in target_muscles
+        e for e in exercises
+        if any(_normalize_token(muscle) in target_muscle_set for muscle in e.primary_muscles)
         and can_use_exercise(e, gym_equipment, experience)
-        and not any(m in pain_areas for m in e.secondary)
+        and not any(_normalize_token(muscle) in pain_area_set for muscle in e.secondary_muscles)
     ]
 
     scored = []
@@ -123,11 +159,14 @@ def pick_exercises(
     # Ensure each target muscle gets at least one exercise
     by_muscle: Dict[str, list] = {}
     for e, s in scored:
-        by_muscle.setdefault(e.primary, []).append((e, s))
+        for muscle in e.primary_muscles:
+            normalized_muscle = _normalize_token(muscle)
+            if normalized_muscle in target_muscle_set:
+                by_muscle.setdefault(normalized_muscle, []).append((e, s))
 
     selected: List[Exercise] = []
     for muscle in target_muscles:
-        group = by_muscle.get(muscle)
+        group = by_muscle.get(_normalize_token(muscle))
         if not group:
             continue
         group.sort(key=lambda pair: pair[1], reverse=True)
@@ -163,13 +202,18 @@ def find_swap(
     reason: str,
     gym_equipment: Dict[str, bool],
     experience: str,
+    exercises: Optional[List[Exercise]] = None,
+    exercise_by_id: Optional[Dict[str, Exercise]] = None,
 ) -> Optional[Exercise]:
-    current = EXERCISE_BY_ID.get(current_exercise_id)
+    exercises = exercises or DEFAULT_EXERCISES
+    exercise_by_id = exercise_by_id or DEFAULT_EXERCISE_BY_ID
+
+    current = exercise_by_id.get(current_exercise_id)
     if not current:
         return None
 
     for sub_id in current.substitutes:
-        sub = EXERCISE_BY_ID.get(sub_id)
+        sub = exercise_by_id.get(sub_id)
         if not sub:
             continue
         if not can_use_exercise(sub, gym_equipment, experience):
@@ -181,9 +225,10 @@ def find_swap(
         return sub
 
     # Fallback: same primary, same pattern
-    for e in EXERCISES:
+    current_primary = _normalize_token(current.primary)
+    for e in exercises:
         if (e.id != current.id
-                and e.primary == current.primary
+                and _normalize_token(e.primary) == current_primary
                 and e.pattern == current.pattern
                 and can_use_exercise(e, gym_equipment, experience)):
             return e

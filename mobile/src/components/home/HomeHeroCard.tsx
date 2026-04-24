@@ -32,6 +32,11 @@ export function HomeHeroCard({
   onStartWorkout,
 }: Props) {
   const { palette } = useTheme();
+  const buttonLabel = loading
+    ? 'Building...'
+    : workoutStartedAt
+      ? 'Continue Workout'
+      : 'Review Workout';
 
   return (
     <>
@@ -96,7 +101,7 @@ export function HomeHeroCard({
             <Text style={homeHeroCardStyles.homeRecoveryText}>Recovered 87%</Text>
           </View>
           <ActionButton
-            label={loading ? 'Building...' : workoutStartedAt ? 'Continue Workout' : 'Start Workout'}
+            label={buttonLabel}
             disabled={loading}
             onPress={onStartWorkout}
           />

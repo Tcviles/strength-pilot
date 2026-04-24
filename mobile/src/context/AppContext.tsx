@@ -63,6 +63,10 @@ type AppContextValue = {
   openWorkout: () => void;
   backHome: () => void;
   navigateToScreen: (screen: AppScreen) => void;
+  moveWorkoutExercise: (exerciseIndex: number, direction: 'up' | 'down') => void;
+  updateWorkoutExerciseTargetSets: (exerciseIndex: number, targetSets: number) => void;
+  removeWorkoutExercise: (exerciseIndex: number) => void;
+  insertWorkoutExercise: (insertIndex: number, exerciseId: string) => void;
   setActiveExerciseIndex: (index: number) => void;
   updateWorkoutSetField: (exerciseIndex: number, setIndex: number, field: 'actualWeight' | 'actualReps', value: string) => void;
   completeWorkoutSet: (exerciseIndex: number, setIndex: number) => void;
@@ -279,6 +283,19 @@ function buildGuestWorkout(
         sets: [],
       })),
     },
+  };
+}
+
+function buildInsertedExercise(exerciseId: string) {
+  const moderateReps = isCompoundExercise(exerciseId) ? '6-8' : '10-12';
+  const restSeconds = isCompoundExercise(exerciseId) ? 90 : 60;
+
+  return {
+    exerciseId,
+    targetSets: 3,
+    targetReps: moderateReps,
+    restSeconds,
+    sets: [],
   };
 }
 
@@ -645,6 +662,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (workout) {
       if (!workoutStartedAt) {
         setWorkoutStartedAt(new Date().toISOString());
+        setStatus('Workout in progress.');
       }
       if (!workoutProgress.length && profile) {
         setWorkoutProgress(buildWorkoutProgress(workout, profile.experience));
@@ -653,13 +671,92 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    await generateWorkout({ openWorkout: true, startOnComplete: true });
+    await generateWorkout({ openWorkout: true, startOnComplete: false });
   }, [generateWorkout, workout, workoutStartedAt, workoutProgress.length, profile]);
 
   const backHome = useCallback(() => {
     setCurrentScreen('home');
     setStatus('Ready');
   }, []);
+
+  const moveWorkoutExercise = useCallback((exerciseIndex: number, direction: 'up' | 'down') => {
+    if (!workout) {
+      return;
+    }
+
+    const targetIndex = direction === 'up' ? exerciseIndex - 1 : exerciseIndex + 1;
+    if (targetIndex < 0 || targetIndex >= workout.exercises.length) {
+      return;
+    }
+
+    const nextExercises = [...workout.exercises];
+    const [lift] = nextExercises.splice(exerciseIndex, 1);
+    nextExercises.splice(targetIndex, 0, lift);
+    const nextWorkout = { ...workout, exercises: nextExercises };
+    const nextExperience = profile?.experience || draftProfile.experience;
+
+    setWorkout(nextWorkout);
+    setWorkoutProgress(buildWorkoutProgress(nextWorkout, nextExperience));
+    setActiveExerciseIndex((current) => {
+      if (current === exerciseIndex) {
+        return targetIndex;
+      }
+      if (current === targetIndex) {
+        return exerciseIndex;
+      }
+      return current;
+    });
+  }, [draftProfile.experience, profile?.experience, workout]);
+
+  const updateWorkoutExerciseTargetSets = useCallback((exerciseIndex: number, targetSets: number) => {
+    if (!workout) {
+      return;
+    }
+
+    const safeTargetSets = Math.max(1, Math.min(8, targetSets));
+    const nextWorkout = {
+      ...workout,
+      exercises: workout.exercises.map((exercise, currentExerciseIndex) =>
+        currentExerciseIndex === exerciseIndex
+          ? { ...exercise, targetSets: safeTargetSets }
+          : exercise,
+      ),
+    };
+    const nextExperience = profile?.experience || draftProfile.experience;
+
+    setWorkout(nextWorkout);
+    setWorkoutProgress(buildWorkoutProgress(nextWorkout, nextExperience));
+  }, [draftProfile.experience, profile?.experience, workout]);
+
+  const removeWorkoutExercise = useCallback((exerciseIndex: number) => {
+    if (!workout || workout.exercises.length <= 1) {
+      return;
+    }
+
+    const nextExercises = workout.exercises.filter((_, currentExerciseIndex) => currentExerciseIndex !== exerciseIndex);
+    const nextWorkout = { ...workout, exercises: nextExercises };
+    const nextExperience = profile?.experience || draftProfile.experience;
+
+    setWorkout(nextWorkout);
+    setWorkoutProgress(buildWorkoutProgress(nextWorkout, nextExperience));
+    setActiveExerciseIndex((current) => Math.max(0, Math.min(current, nextExercises.length - 1)));
+  }, [draftProfile.experience, profile?.experience, workout]);
+
+  const insertWorkoutExercise = useCallback((insertIndex: number, exerciseId: string) => {
+    if (!workout) {
+      return;
+    }
+
+    const boundedIndex = Math.max(0, Math.min(insertIndex, workout.exercises.length));
+    const nextExercises = [...workout.exercises];
+    nextExercises.splice(boundedIndex, 0, buildInsertedExercise(exerciseId));
+    const nextWorkout = { ...workout, exercises: nextExercises };
+    const nextExperience = profile?.experience || draftProfile.experience;
+
+    setWorkout(nextWorkout);
+    setWorkoutProgress(buildWorkoutProgress(nextWorkout, nextExperience));
+    setStatus('Exercise added to workout.');
+  }, [draftProfile.experience, profile?.experience, workout]);
 
   const updateWorkoutSetField = useCallback(
     (exerciseIndex: number, setIndex: number, field: 'actualWeight' | 'actualReps', value: string) => {
@@ -924,7 +1021,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setActiveExerciseIndex(0);
       setRestStartedAt(null);
       setPendingFeedback(null);
-      setWorkoutStartedAt(new Date().toISOString());
+      setWorkoutStartedAt(null);
       setCurrentScreen('workout');
       setStatus(`${response.focus} workout ready.`);
     } catch (err) {
@@ -968,6 +1065,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       openWorkout,
       backHome,
       navigateToScreen,
+      moveWorkoutExercise,
+      updateWorkoutExerciseTargetSets,
+      removeWorkoutExercise,
+      insertWorkoutExercise,
       setActiveExerciseIndex,
       updateWorkoutSetField,
       completeWorkoutSet,
@@ -1006,6 +1107,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       openWorkout,
       backHome,
       navigateToScreen,
+      moveWorkoutExercise,
+      updateWorkoutExerciseTargetSets,
+      removeWorkoutExercise,
+      insertWorkoutExercise,
       setActiveExerciseIndex,
       updateWorkoutSetField,
       completeWorkoutSet,

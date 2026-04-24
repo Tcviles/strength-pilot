@@ -82,8 +82,8 @@ android {
         applicationId "com.mobile"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 3
-        versionName "0.0.3"
+        versionCode 4
+        versionName "0.0.4"
     }
     signingConfigs {
         debug {
@@ -103,6 +103,14 @@ android {
             signingConfig signingConfigs.debug
             minifyEnabled enableProguardInReleaseBuilds
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
+        }
+    }
+
+    applicationVariants.configureEach { variant ->
+        if (variant.buildType.name == "release") {
+            variant.outputs.configureEach { output ->
+                output.outputFileName = "StrengthPilot-${variant.versionName}.apk"
+            }
         }
     }
 }

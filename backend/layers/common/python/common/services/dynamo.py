@@ -92,5 +92,23 @@ class DynamoConnection:
     def put_item(self, item):
         return self.dynamo_table.put_item(Item=item)
 
+    def delete_item(self, key):
+        return self.dynamo_table.delete_item(Key=key)
+
     def query(self, **kwargs):
         return self.dynamo_table.query(**kwargs)
+
+    def scan(self, **kwargs):
+        return self.dynamo_table.scan(**kwargs)
+
+    def scan_all(self, **kwargs):
+        items = []
+        scan_kwargs = dict(kwargs)
+        while True:
+            response = self.dynamo_table.scan(**scan_kwargs)
+            items.extend(response.get('Items', []))
+            last_evaluated_key = response.get('LastEvaluatedKey')
+            if not last_evaluated_key:
+                break
+            scan_kwargs['ExclusiveStartKey'] = last_evaluated_key
+        return items

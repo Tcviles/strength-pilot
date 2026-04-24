@@ -69,11 +69,17 @@ export const exerciseInfoModalStyles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 10,
+    width: '100%',
   },
   modalListBullet: {
     fontSize: 16,
     fontWeight: '800',
     marginTop: 1,
+    width: 12,
+  },
+  modalListText: {
+    flex: 1,
+    flexShrink: 1,
   },
   modalAlternativeCard: {
     borderWidth: 1,
@@ -88,5 +94,11 @@ export const exerciseInfoModalStyles = StyleSheet.create({
   modalAlternativeMeta: {
     fontSize: 13,
     fontWeight: '500',
+  },
+  modalDeleteCardLoading: {
+    opacity: 0.6,
+  },
+  modalDeleteTitle: {
+    color: '#ff7a6f',
   },
 });

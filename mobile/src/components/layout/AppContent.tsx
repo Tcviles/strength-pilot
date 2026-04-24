@@ -15,6 +15,7 @@ import { OnboardingCard } from '../onboarding/OnboardingCard';
 import { ProfileCard } from '../profile/ProfileCard';
 import { FeaturePlaceholderCard } from '../shared/FeaturePlaceholderCard';
 import { WorkoutCard } from '../workout/WorkoutCard';
+import { WorkoutPreviewCard } from '../workout/WorkoutPreviewCard';
 import { WorkoutTopBar } from '../workout/WorkoutTopBar';
 
 export function AppContent() {
@@ -36,6 +37,7 @@ export function AppContent() {
     profile,
     gym,
     currentScreen,
+    workoutStartedAt,
     isGuestMode,
     status,
     error,
@@ -55,7 +57,7 @@ export function AppContent() {
     : currentScreen === 'profile'
       ? (tokens ? 'profile' : 'auth')
       : currentScreen === 'workout' && workout
-        ? 'workout'
+        ? (workoutStartedAt ? 'workout' : 'workout-preview')
         : currentScreen === 'progress'
           ? 'progress'
           : currentScreen === 'library'
@@ -73,7 +75,7 @@ export function AppContent() {
   const hasStickyFooter = !isAuthStage && !isOnboardingStage;
   const hasProfileFooter = currentStage === 'auth';
   const shouldShowFooter = hasStickyFooter || hasProfileFooter;
-  const hasStickyWorkoutBar = currentStage === 'workout' && Boolean(workout);
+  const hasStickyWorkoutBar = currentStage === 'workout' && Boolean(workout) && Boolean(workoutStartedAt);
   const activeTab = currentStage === 'workout'
     ? 'workout'
     : currentStage === 'profile' || currentStage === 'auth'
@@ -240,6 +242,8 @@ export function AppContent() {
           {currentStage === 'guest-home' ? <GuestHomeCard /> : null}
 
           {currentStage === 'workout' && workout ? <WorkoutCard /> : null}
+
+          {currentStage === 'workout-preview' && workout ? <WorkoutPreviewCard /> : null}
 
           {currentStage === 'profile' ? <ProfileCard /> : null}
 

@@ -120,6 +120,58 @@ export async function apiRequest<T>(
   return payload as T;
 }
 
+export async function publicApiRequest<T>(
+  path: string,
+  method: 'GET' | 'POST' | 'DELETE' = 'GET',
+  body?: object,
+): Promise<T> {
+  const url = `${CONFIG.apiBaseUrl}${path}`;
+  logDebug('Public API request', {
+    method,
+    path,
+    url,
+    hasBody: Boolean(body),
+    body: sanitizeBody(body),
+  });
+
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      method,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: body ? JSON.stringify(body) : undefined,
+    });
+  } catch (err) {
+    const errorSummary = summarizeError(err);
+    logDebug('Public API network failure', {
+      method,
+      path,
+      url,
+      body: sanitizeBody(body),
+      error: errorSummary,
+    });
+    throw new Error(`Network request failed for ${method} ${path}: ${errorSummary.message}`);
+  }
+
+  const payload = await response.json().catch(() => ({}));
+  logDebug('Public API response', {
+    method,
+    path,
+    url,
+    ok: response.ok,
+    status: response.status,
+    payload,
+  });
+
+  if (!response.ok) {
+    throw new Error(payload.error || 'Request failed.');
+  }
+
+  return payload as T;
+}
+
 export async function cognitoRequest(target: string, payload: object) {
   const url = COGNITO_ENDPOINT;
   logDebug('Cognito request', {

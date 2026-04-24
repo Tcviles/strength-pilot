@@ -7,6 +7,12 @@ Parameters:
     Type: String
     Default: dev
     AllowedValues: [dev, prod]
+  OpenAIExerciseModel:
+    Type: String
+    Default: gpt-4o-mini
+  ExerciseAdminEmails:
+    Type: String
+    Default: ''
 
 Globals:
   Function:
@@ -21,6 +27,7 @@ Globals:
         USERS_TABLE: !Ref UsersTable
         WORKOUTS_TABLE: !Ref WorkoutsTable
         GYMS_TABLE: !Ref GymsTable
+        EXERCISES_TABLE: !Ref ExercisesTable
         STAGE: !Ref Stage
 
 Resources:
@@ -142,6 +149,20 @@ Resources:
         - AttributeName: gymId
           KeyType: RANGE
 
+  ExercisesTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      TableName: !Sub strength-pilot-${Stage}-exercises
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: exerciseId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: exerciseId
+          KeyType: HASH
+
   # ---- HTTP API with Cognito JWT authorizer ----
   StrengthPilotApi:
     Type: AWS::Serverless::HttpApi
@@ -232,6 +253,88 @@ Resources:
             Path: /workouts
             Method: get
 
+  # ---- Exercise library domain ----
+  ListExercises:
+    <<: *GeneralFunction
+    Properties:
+      <<: *GeneralProperties
+      FunctionName: !Sub strength-pilot-${Stage}-listExercises
+      CodeUri: src/exercise
+      Handler: list_exercises.lambda_handler
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref StrengthPilotApi
+            Path: /exercises
+            Method: get
+            Auth:
+              Authorizer: NONE
+
+  GetExercise:
+    <<: *GeneralFunction
+    Properties:
+      <<: *GeneralProperties
+      FunctionName: !Sub strength-pilot-${Stage}-getExercise
+      CodeUri: src/exercise
+      Handler: get_exercise.lambda_handler
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref StrengthPilotApi
+            Path: /exercises/{exerciseId}
+            Method: get
+            Auth:
+              Authorizer: NONE
+
+  DeleteExercise:
+    <<: *GeneralFunction
+    Properties:
+      <<: *GeneralProperties
+      FunctionName: !Sub strength-pilot-${Stage}-deleteExercise
+      CodeUri: src/exercise
+      Handler: delete_exercise.lambda_handler
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref StrengthPilotApi
+            Path: /exercises/{exerciseId}
+            Method: delete
+            Auth:
+              Authorizer: NONE
+
+  AddExercise:
+    <<: *GeneralFunction
+    Properties:
+      <<: *GeneralProperties
+      FunctionName: !Sub strength-pilot-${Stage}-addExercise
+      CodeUri: src/exercise
+      Handler: add_exercise.lambda_handler
+      Policies:
+        - AmazonDynamoDBFullAccess
+        - AmazonCognitoPowerUser
+        - AWSLambdaBasicExecutionRole
+        - Statement:
+            Effect: Allow
+            Action:
+              - ssm:GetParameter
+            Resource: !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/pilot-iq/openai_api_key
+      Environment:
+        Variables:
+          OPENAI_EXERCISE_MODEL: !Ref OpenAIExerciseModel
+          EXERCISE_ADMIN_EMAILS: !Ref ExerciseAdminEmails
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref StrengthPilotApi
+            Path: /exercises
+            Method: post
+            Auth:
+              Authorizer: NONE
+
   # ---- User domain ----
   GetUserProfile:
     <<: *GeneralFunction
@@ -304,3 +407,6 @@ Outputs:
   UserPoolClientId:
     Description: Cognito User Pool Client ID (mobile app)
     Value: !Ref UserPoolClient
+  ExercisesTableName:
+    Description: Canonical exercises DynamoDB table name
+    Value: !Ref ExercisesTable

@@ -7,11 +7,13 @@ from common.models.api_response import APIResponse
 from common.models.request_event import RequestEvent
 from common.utils.logger import setup_logger
 from common.domain.programming import find_swap, get_set_rep_scheme
+from common.services.exercise_library import ExerciseLibraryService
 
 logger = setup_logger('swap-exercise')
 
 users_service = DynamoConnection(os.getenv('USERS_TABLE'))
 gyms_service = DynamoConnection(os.getenv('GYMS_TABLE'))
+exercise_library = ExerciseLibraryService()
 
 
 def lambda_handler(event, context):
@@ -48,13 +50,15 @@ def lambda_handler(event, context):
             reason=reason,
             gym_equipment=clean_decimals(gym.get('equipment') or {}),
             experience=user.get('experience', 'beginner'),
+            exercises=exercise_library.list_exercises(),
+            exercise_by_id=exercise_library.get_exercise_map(),
         )
         if not replacement:
             return APIResponse.not_found('No suitable substitute found')
 
         scheme = get_set_rep_scheme(user.get('goal', 'general'), replacement)
         return APIResponse.result({
-            'replacement': replacement.to_dict(),
+            'replacement': replacement.to_record(),
             'scheme': scheme,
             'swappedFrom': current_exercise_id,
             'reason': reason,
