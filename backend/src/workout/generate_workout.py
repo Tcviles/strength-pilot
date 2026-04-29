@@ -4,19 +4,16 @@ import uuid
 from datetime import datetime, timezone
 
 from common.services.dynamo import DynamoConnection
-from common.services.deserialize_dynamo import clean_decimals
 from common.models.api_response import APIResponse
 from common.models.request_event import RequestEvent
 from common.utils.logger import setup_logger
-from common.domain.programming import pick_exercises, select_split
-from common.services.exercise_library import ExerciseLibraryService
+from generation_common import build_generated_workout
 
 logger = setup_logger('generate-workout')
 
 users_service = DynamoConnection(os.getenv('USERS_TABLE'))
 gyms_service = DynamoConnection(os.getenv('GYMS_TABLE'))
 workouts_service = DynamoConnection(os.getenv('WORKOUTS_TABLE'))
-exercise_library = ExerciseLibraryService()
 
 
 def lambda_handler(event, context):
@@ -55,41 +52,17 @@ def lambda_handler(event, context):
             e.get('exerciseId') for w in recent for e in (w.get('exercises') or [])
         ]
 
-        days_per_week = int(user.get('daysPerWeek', 3))
-        split = select_split(
-            days_per_week,
-            user.get('splitPreference', 'auto'),
-            user.get('goal', 'general'),
-        )
-        day_index = body.get('dayIndex')
-        if day_index is None:
-            day_index = len(recent) % len(split)
-        focus = split[day_index % len(split)]
-
-        exercises = pick_exercises(
-            focus=focus,
-            gym_equipment=clean_decimals(gym.get('equipment') or {}),
-            goal=user.get('goal', 'general'),
-            experience=user.get('experience', 'beginner'),
-            session_length=int(user.get('sessionLength', 60)),
-            pain_areas=list(user.get('painAreas') or []),
-            limited_time=bool(body.get('limitedTime', False)),
-            gym_crowdedness=body.get('gymCrowdedness', 'low'),
+        workout, focus = build_generated_workout(
+            profile=user,
+            gym=gym,
+            body=body,
             recent_exercise_ids=recent_exercise_ids,
-            exercises=exercise_library.list_exercises(),
         )
-
-        workout = {
+        workout.update({
             'userId': user_id,
             'workoutId': str(uuid.uuid4()),
             'generatedAt': datetime.now(timezone.utc).isoformat(),
-            'goal': user.get('goal', 'general'),
-            'durationMinutes': int(user.get('sessionLength', 60)),
-            'exercises': exercises,
-            'mood': body.get('mood'),
-            'gymCrowdedness': body.get('gymCrowdedness'),
-            'limitedTime': body.get('limitedTime'),
-        }
+        })
 
         return APIResponse.result({'workout': workout, 'focus': focus})
     except Exception as ex:

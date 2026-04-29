@@ -1,8 +1,7 @@
 import React from 'react';
-import { Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { useTheme } from '../../hooks/useTheme';
-import { featurePlaceholderCardStyles } from './FeaturePlaceholderCard.styles';
 
 type Props = {
   eyebrow: string;
@@ -21,3 +20,27 @@ export function FeaturePlaceholderCard({ eyebrow, title, body }: Props) {
     </View>
   );
 }
+
+const featurePlaceholderCardStyles = StyleSheet.create({
+  card: {
+    borderWidth: 1,
+    borderRadius: 32,
+    paddingHorizontal: 22,
+    paddingVertical: 24,
+    gap: 14,
+  },
+  eyebrow: {
+    fontSize: 13,
+    fontWeight: '800',
+    letterSpacing: 2.2,
+  },
+  title: {
+    fontSize: 32,
+    lineHeight: 36,
+    fontWeight: '900',
+  },
+  body: {
+    fontSize: 16,
+    lineHeight: 24,
+  },
+});

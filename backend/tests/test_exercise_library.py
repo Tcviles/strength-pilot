@@ -168,6 +168,9 @@ class ExerciseLibraryServiceTests(unittest.TestCase):
             [{
                 'exerciseId': 'pec_deck',
                 'name': 'Pec Deck',
+                'familyId': 'pec_deck',
+                'familyName': 'Pec Deck',
+                'variantLabel': '',
                 'aliases': [],
                 'primaryMuscles': ['chest'],
                 'secondaryMuscles': [],

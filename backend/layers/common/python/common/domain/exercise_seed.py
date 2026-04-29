@@ -30,6 +30,35 @@ SECONDARY_MUSCLE_OVERRIDES = {
     'rear_delt_fly': ['upper_back'],
 }
 
+FAMILY_METADATA_OVERRIDES = {
+    'bb_bench_press': {'familyId': 'bench_press', 'familyName': 'Bench Press', 'variantLabel': 'Barbell'},
+    'db_bench_press': {'familyId': 'bench_press', 'familyName': 'Bench Press', 'variantLabel': 'Dumbbell'},
+    'smith_bench_press': {'familyId': 'bench_press', 'familyName': 'Bench Press', 'variantLabel': 'Smith'},
+    'incline_bb_press': {'familyId': 'incline_press', 'familyName': 'Incline Press', 'variantLabel': 'Barbell'},
+    'incline_db_press': {'familyId': 'incline_press', 'familyName': 'Incline Press', 'variantLabel': 'Dumbbell'},
+    'pec_fly': {'familyId': 'chest_fly', 'familyName': 'Chest Fly', 'variantLabel': 'Machine'},
+    'pec_deck': {'familyId': 'chest_fly', 'familyName': 'Chest Fly', 'variantLabel': 'Pec Deck'},
+    'pec_fly_machine': {'familyId': 'chest_fly', 'familyName': 'Chest Fly', 'variantLabel': 'Machine'},
+    'db_fly': {'familyId': 'chest_fly', 'familyName': 'Chest Fly', 'variantLabel': 'Dumbbell'},
+    'cable_fly': {'familyId': 'chest_fly', 'familyName': 'Chest Fly', 'variantLabel': 'Cable'},
+    'ohp': {'familyId': 'shoulder_press', 'familyName': 'Shoulder Press', 'variantLabel': 'Barbell'},
+    'db_shoulder_press': {'familyId': 'shoulder_press', 'familyName': 'Shoulder Press', 'variantLabel': 'Dumbbell'},
+    'machine_shoulder_press': {'familyId': 'shoulder_press', 'familyName': 'Shoulder Press', 'variantLabel': 'Machine'},
+    'lateral_raise': {'familyId': 'lateral_raise', 'familyName': 'Lateral Raise', 'variantLabel': 'Dumbbell'},
+    'cable_lateral_raise': {'familyId': 'lateral_raise', 'familyName': 'Lateral Raise', 'variantLabel': 'Cable'},
+    'machine_lateral_raise': {'familyId': 'lateral_raise', 'familyName': 'Lateral Raise', 'variantLabel': 'Machine'},
+    'bb_curl': {'familyId': 'curl', 'familyName': 'Curl', 'variantLabel': 'Barbell'},
+    'db_curl': {'familyId': 'curl', 'familyName': 'Curl', 'variantLabel': 'Dumbbell'},
+    'cable_curl': {'familyId': 'curl', 'familyName': 'Curl', 'variantLabel': 'Cable'},
+    'ez_bar_curl': {'familyId': 'curl', 'familyName': 'Curl', 'variantLabel': 'EZ-Bar'},
+    'hammer_curl': {'familyId': 'hammer_curl', 'familyName': 'Hammer Curl', 'variantLabel': 'Dumbbell'},
+    'cable_hammer_curl': {'familyId': 'hammer_curl', 'familyName': 'Hammer Curl', 'variantLabel': 'Cable'},
+    'standing_calf_raise': {'familyId': 'calf_raise', 'familyName': 'Calf Raise', 'variantLabel': 'Standing'},
+    'seated_calf_raise': {'familyId': 'calf_raise', 'familyName': 'Calf Raise', 'variantLabel': 'Seated'},
+    'pull_up': {'familyId': 'pull_up', 'familyName': 'Pull-Up', 'variantLabel': 'Bodyweight'},
+    'assisted_pull_up': {'familyId': 'pull_up', 'familyName': 'Pull-Up', 'variantLabel': 'Assisted'},
+}
+
 PRIMARY_DISPLAY_NAMES = {
     'chest': 'chest',
     'lats': 'lats',
@@ -158,6 +187,7 @@ def _legacy_to_canonical(exercise: LegacyExercise) -> CanonicalExercise:
     return CanonicalExercise.from_record({
         'exerciseId': exercise.id,
         'name': exercise.name,
+        **FAMILY_METADATA_OVERRIDES.get(exercise.id, {}),
         'aliases': [exercise.name.lower()],
         'primaryMuscles': [PRIMARY_MUSCLE_OVERRIDES.get(exercise.id, exercise.primary)],
         'secondaryMuscles': SECONDARY_MUSCLE_OVERRIDES.get(exercise.id, exercise.secondary),
@@ -643,7 +673,10 @@ SUPPLEMENTAL_EXERCISES = [
 def build_seed_exercises() -> List[CanonicalExercise]:
     canonical = {_legacy_to_canonical(exercise).exercise_id: _legacy_to_canonical(exercise) for exercise in LEGACY_EXERCISES}
     for record in SUPPLEMENTAL_EXERCISES:
-        exercise = CanonicalExercise.from_record(record)
+        exercise = CanonicalExercise.from_record({
+            **FAMILY_METADATA_OVERRIDES.get(record['exerciseId'], {}),
+            **record,
+        })
         canonical[exercise.exercise_id] = exercise
     enriched = [_enrich_seed_exercise(exercise) for exercise in canonical.values()]
     return sorted(enriched, key=lambda exercise: exercise.name)

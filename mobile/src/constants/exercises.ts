@@ -1,6 +1,6 @@
 import type { Experience } from '../types/app';
 
-export const EXERCISE_NAMES: Record<string, string> = {
+const EXERCISE_NAMES: Record<string, string> = {
   bb_bench_press: 'Barbell Bench Press',
   db_bench_press: 'Dumbbell Bench Press',
   incline_db_press: 'Incline Dumbbell Press',
@@ -49,6 +49,12 @@ type ExerciseMeta = {
   alternatives: string[];
 };
 
+type ExerciseFamilyMeta = {
+  familyId: string;
+  familyName: string;
+  variantLabel?: string;
+};
+
 const DEFAULT_META: ExerciseMeta = {
   equipment: 'Machine',
   compound: false,
@@ -61,6 +67,22 @@ const DEFAULT_META: ExerciseMeta = {
     'Use the prescribed tempo instead of chasing momentum.',
   ],
   alternatives: [],
+};
+
+const EXERCISE_FAMILY_META: Record<string, ExerciseFamilyMeta> = {
+  bb_bench_press: { familyId: 'bench_press', familyName: 'Bench Press', variantLabel: 'Barbell' },
+  db_bench_press: { familyId: 'bench_press', familyName: 'Bench Press', variantLabel: 'Dumbbell' },
+  incline_db_press: { familyId: 'incline_press', familyName: 'Incline Press', variantLabel: 'Dumbbell' },
+  cable_fly: { familyId: 'chest_fly', familyName: 'Chest Fly', variantLabel: 'Cable' },
+  pull_up: { familyId: 'pull_up', familyName: 'Pull-Up', variantLabel: 'Bodyweight' },
+  ohp: { familyId: 'shoulder_press', familyName: 'Shoulder Press', variantLabel: 'Barbell' },
+  db_shoulder_press: { familyId: 'shoulder_press', familyName: 'Shoulder Press', variantLabel: 'Dumbbell' },
+  lateral_raise: { familyId: 'lateral_raise', familyName: 'Lateral Raise', variantLabel: 'Dumbbell' },
+  bb_curl: { familyId: 'curl', familyName: 'Curl', variantLabel: 'Barbell' },
+  db_curl: { familyId: 'curl', familyName: 'Curl', variantLabel: 'Dumbbell' },
+  hammer_curl: { familyId: 'hammer_curl', familyName: 'Hammer Curl', variantLabel: 'Dumbbell' },
+  standing_calf_raise: { familyId: 'calf_raise', familyName: 'Calf Raise', variantLabel: 'Standing' },
+  seated_calf_raise: { familyId: 'calf_raise', familyName: 'Calf Raise', variantLabel: 'Seated' },
 };
 
 const EXERCISE_META: Record<string, ExerciseMeta> = {
@@ -542,19 +564,99 @@ const EXPERIENCE_MULTIPLIER: Record<Experience, number> = {
 
 export function getExerciseMeta(exerciseId: string) {
   const meta = EXERCISE_META[exerciseId] || DEFAULT_META;
+  const rawName = EXERCISE_NAMES[exerciseId] || exerciseId.replace(/_/g, ' ');
+  const familyMeta = EXERCISE_FAMILY_META[exerciseId] || {
+    familyId: exerciseId,
+    familyName: rawName,
+    variantLabel: '',
+  };
+
+  const variants = Object.keys(EXERCISE_NAMES)
+    .filter((candidateId) => {
+      const candidateRawName = EXERCISE_NAMES[candidateId] || candidateId.replace(/_/g, ' ');
+      const candidateFamily = EXERCISE_FAMILY_META[candidateId] || {
+        familyId: candidateId,
+        familyName: candidateRawName,
+        variantLabel: '',
+      };
+      return candidateFamily.familyId === familyMeta.familyId;
+    })
+    .sort((leftId, rightId) => {
+      const leftMeta = EXERCISE_FAMILY_META[leftId];
+      const rightMeta = EXERCISE_FAMILY_META[rightId];
+      return (leftMeta?.variantLabel || '').localeCompare(rightMeta?.variantLabel || '');
+    })
+    .map((candidateId) => {
+      const candidateMeta = EXERCISE_META[candidateId] || DEFAULT_META;
+      const candidateRawName = EXERCISE_NAMES[candidateId] || candidateId.replace(/_/g, ' ');
+      const candidateFamily = EXERCISE_FAMILY_META[candidateId] || {
+        familyId: candidateId,
+        familyName: candidateRawName,
+        variantLabel: '',
+      };
+
+      return {
+        exerciseId: candidateId,
+        name: candidateRawName,
+        displayName: candidateFamily.variantLabel
+          ? `${candidateFamily.familyName} (${candidateFamily.variantLabel})`
+          : candidateFamily.familyName,
+        familyId: candidateFamily.familyId,
+        familyName: candidateFamily.familyName,
+        variantLabel: candidateFamily.variantLabel || '',
+        equipment: candidateMeta.equipment,
+        primaryMuscles: candidateMeta.primaryMuscles,
+        secondaryMuscles: candidateMeta.secondaryMuscles,
+        tips: candidateMeta.tips,
+        alternatives: candidateMeta.alternatives.map((alternativeId) => {
+          const alternativeName = EXERCISE_NAMES[alternativeId] || alternativeId.replace(/_/g, ' ');
+          const alternativeFamily = EXERCISE_FAMILY_META[alternativeId] || {
+            familyId: alternativeId,
+            familyName: alternativeName,
+            variantLabel: '',
+          };
+          return {
+            exerciseId: alternativeId,
+            name: alternativeFamily.familyName,
+            displayName: alternativeFamily.variantLabel
+              ? `${alternativeFamily.familyName} (${alternativeFamily.variantLabel})`
+              : alternativeFamily.familyName,
+            equipment: (EXERCISE_META[alternativeId] || DEFAULT_META).equipment,
+          };
+        }),
+      };
+    });
 
   return {
-    name: EXERCISE_NAMES[exerciseId] || exerciseId.replace(/_/g, ' '),
+    name: rawName,
+    displayName: familyMeta.variantLabel
+      ? `${familyMeta.familyName} (${familyMeta.variantLabel})`
+      : familyMeta.familyName,
+    familyId: familyMeta.familyId,
+    familyName: familyMeta.familyName,
+    variantLabel: familyMeta.variantLabel || '',
     equipment: meta.equipment,
     compound: meta.compound,
     primaryMuscles: meta.primaryMuscles,
     secondaryMuscles: meta.secondaryMuscles,
     tips: meta.tips,
-    alternatives: meta.alternatives.map((alternativeId) => ({
-      exerciseId: alternativeId,
-      name: EXERCISE_NAMES[alternativeId] || alternativeId.replace(/_/g, ' '),
-      equipment: (EXERCISE_META[alternativeId] || DEFAULT_META).equipment,
-    })),
+    variants,
+    alternatives: meta.alternatives.map((alternativeId) => {
+      const alternativeName = EXERCISE_NAMES[alternativeId] || alternativeId.replace(/_/g, ' ');
+      const alternativeFamily = EXERCISE_FAMILY_META[alternativeId] || {
+        familyId: alternativeId,
+        familyName: alternativeName,
+        variantLabel: '',
+      };
+      return {
+        exerciseId: alternativeId,
+        name: alternativeFamily.familyName,
+        displayName: alternativeFamily.variantLabel
+          ? `${alternativeFamily.familyName} (${alternativeFamily.variantLabel})`
+          : alternativeFamily.familyName,
+        equipment: (EXERCISE_META[alternativeId] || DEFAULT_META).equipment,
+      };
+    }),
   };
 }
 
@@ -575,13 +677,4 @@ export function getSuggestedWeight(exerciseId: string, experience: Experience) {
 
 export function isCompoundExercise(exerciseId: string) {
   return (EXERCISE_META[exerciseId] || DEFAULT_META).compound;
-}
-
-export function getExerciseLibraryItems() {
-  return Object.keys(EXERCISE_NAMES)
-    .map((exerciseId) => ({
-      exerciseId,
-      ...getExerciseMeta(exerciseId),
-    }))
-    .sort((a, b) => a.name.localeCompare(b.name));
 }

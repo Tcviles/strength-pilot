@@ -18,6 +18,9 @@ class CanonicalExerciseTests(unittest.TestCase):
 
         self.assertEqual(exercise.exercise_id, 'test_move')
         self.assertEqual(exercise.name, 'Test Move')
+        self.assertEqual(exercise.family_id, 'test_move')
+        self.assertEqual(exercise.family_name, 'Test Move')
+        self.assertEqual(exercise.variant_label, '')
         self.assertEqual(exercise.primary_muscles, ['general'])
         self.assertEqual(exercise.equipment, ['machine'])
         self.assertEqual(exercise.attachments, [])
@@ -27,6 +30,9 @@ class CanonicalExerciseTests(unittest.TestCase):
         exercise = build_canonical_exercise({
             'exerciseId': 'neutral_grip_pulldown',
             'name': 'Neutral Grip Pulldown',
+            'familyId': 'lat_pulldown',
+            'familyName': 'Lat Pulldown',
+            'variantLabel': 'Neutral Grip',
             'aliases': ['Neutral Grip Pulldown', 'MAG Pulldown'],
             'primaryMuscles': ['Lats'],
             'secondaryMuscles': ['Biceps', 'Rear Delts'],
@@ -44,6 +50,9 @@ class CanonicalExerciseTests(unittest.TestCase):
         })
 
         self.assertEqual(exercise.primary_muscles, ['lats'])
+        self.assertEqual(exercise.family_id, 'lat_pulldown')
+        self.assertEqual(exercise.family_name, 'Lat Pulldown')
+        self.assertEqual(exercise.variant_label, 'Neutral Grip')
         self.assertEqual(exercise.secondary_muscles, ['biceps', 'rear delts'])
         self.assertEqual(exercise.equipment, ['cable', 'machine'])
         self.assertEqual(exercise.attachments, ['neutral_grip', 'mag_grip'])
@@ -62,6 +71,9 @@ class CanonicalExerciseTests(unittest.TestCase):
 
         self.assertEqual(record['exerciseId'], 'rope_pushdown')
         self.assertEqual(record['name'], 'Rope Pushdown')
+        self.assertEqual(record['familyId'], 'rope_pushdown')
+        self.assertEqual(record['familyName'], 'Rope Pushdown')
+        self.assertEqual(record['variantLabel'], '')
         self.assertEqual(record['attachments'], ['rope'])
         self.assertIn('primaryMuscles', record)
         self.assertNotIn('baseWeight', record)

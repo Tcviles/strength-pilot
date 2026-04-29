@@ -1,11 +1,10 @@
 import React from 'react';
-import { Modal, Pressable, Text, View } from 'react-native';
+import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { useTheme } from '../../hooks/useTheme';
 import type { Crowd, Gym, Profile } from '../../types/app';
 import { ActionButton } from './ActionButton';
 import { OptionRow } from './OptionRow';
-import { workoutPreferencesModalStyles } from './WorkoutPreferencesModal.styles';
 
 type Props = {
   visible: boolean;
@@ -106,3 +105,44 @@ export function WorkoutPreferencesModal({
     </Modal>
   );
 }
+
+const workoutPreferencesModalStyles = StyleSheet.create({
+  modalBackdrop: {
+    flex: 1,
+    justifyContent: 'center',
+    paddingHorizontal: 18,
+    paddingVertical: 24,
+  },
+  modalScrim: {
+    ...StyleSheet.absoluteFill,
+    backgroundColor: 'rgba(0, 0, 0, 0.62)',
+  },
+  card: {
+    borderWidth: 1,
+    borderRadius: 28,
+    paddingHorizontal: 18,
+    paddingVertical: 20,
+    gap: 14,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  title: {
+    fontSize: 28,
+    lineHeight: 32,
+    fontWeight: '800',
+  },
+  closeButton: {
+    width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  closeText: {
+    fontSize: 32,
+    lineHeight: 32,
+    fontWeight: '300',
+  },
+});

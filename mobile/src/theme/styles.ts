@@ -65,19 +65,40 @@ export const styles = StyleSheet.create({
     fontWeight: '700',
   },
   buttonPressable: {
+    width: '100%',
+  },
+  buttonPressableGrow: {
     flex: 1,
   },
   button: {
-    flex: 1,
-    minHeight: 54,
+    minHeight: 44,
+    width: '100%',
+    alignSelf: 'stretch',
     borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 18,
+    paddingHorizontal: 16,
     overflow: 'hidden',
   },
-  buttonBackgroundImage: {
+  buttonGrow: {
+    flex: 1,
+    minHeight: 44,
     borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 16,
+    overflow: 'hidden',
+  },
+  buttonTexture: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+  },
+  buttonTextureImage: {
+    borderRadius: 16,
+    transform: [{ scaleX: 1.12 }, { scaleY: 1.04 }],
   },
   buttonDisabled: {
     opacity: 0.75,

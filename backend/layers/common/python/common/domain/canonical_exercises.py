@@ -61,6 +61,9 @@ def _default_strategy_tags(compound: bool, placement: str) -> List[str]:
 class CanonicalExercise:
     exercise_id: str
     name: str
+    family_id: str = ''
+    family_name: str = ''
+    variant_label: str = ''
     aliases: List[str] = field(default_factory=list)
     primary_muscles: List[str] = field(default_factory=list)
     secondary_muscles: List[str] = field(default_factory=list)
@@ -96,6 +99,9 @@ class CanonicalExercise:
         return {
             'exerciseId': self.exercise_id,
             'name': self.name,
+            'familyId': self.family_id or self.exercise_id,
+            'familyName': self.family_name or self.name,
+            'variantLabel': self.variant_label,
             'aliases': list(self.aliases),
             'primaryMuscles': list(self.primary_muscles),
             'secondaryMuscles': list(self.secondary_muscles),
@@ -126,6 +132,9 @@ def build_canonical_exercise(record: Dict[str, Any]) -> CanonicalExercise:
         raise ValueError('exerciseId is required')
 
     name = _normalize_text(record.get('name')) or exercise_id.replace('_', ' ').title()
+    family_id = _normalize_text(record.get('familyId')) or exercise_id
+    family_name = _normalize_text(record.get('familyName')) or name
+    variant_label = _normalize_text(record.get('variantLabel'))
 
     aliases = _normalize_string_list(record.get('aliases'))
     primary_muscles = _normalize_string_list(
@@ -167,6 +176,9 @@ def build_canonical_exercise(record: Dict[str, Any]) -> CanonicalExercise:
     return CanonicalExercise(
         exercise_id=exercise_id,
         name=name,
+        family_id=family_id,
+        family_name=family_name,
+        variant_label=variant_label,
         aliases=aliases,
         primary_muscles=primary_muscles,
         secondary_muscles=secondary_muscles,

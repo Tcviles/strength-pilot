@@ -1,22 +1,17 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Image, Pressable, ScrollView, Text, View } from 'react-native';
+import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { useTheme } from '../../hooks/useTheme';
 import { publicApiRequest } from '../../services/api';
+import {
+  fetchExerciseLibraryFamilies,
+  mapExerciseApiToVariants,
+  mapVariantsToFamilies,
+  type ExerciseApiRecord,
+  type ExerciseLibraryFamily,
+} from '../../services/exerciseLibrary';
 import { ExerciseInfoModal, type ExerciseInfoRecord } from '../shared/ExerciseInfoModal';
 import { AddExerciseModal } from './AddExerciseModal';
-import { libraryCardStyles } from './LibraryCard.styles';
-
-type ExerciseApiRecord = {
-  exerciseId: string;
-  name: string;
-  primaryMuscles: string[];
-  secondaryMuscles: string[];
-  equipment: string[];
-  tips: string[];
-  alternatives: string[];
-  attachments?: string[];
-};
 
 type ExerciseSection = {
   key: string;
@@ -72,7 +67,7 @@ export function LibraryCard() {
   const [addLoading, setAddLoading] = useState(false);
   const [addError, setAddError] = useState('');
   const [deleteLoading, setDeleteLoading] = useState(false);
-  const [fetchedExercises, setFetchedExercises] = useState<ExerciseInfoRecord[]>([]);
+  const [fetchedExercises, setFetchedExercises] = useState<ExerciseLibraryFamily[]>([]);
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
 
   const groupedExercises = useMemo<ExerciseSection[]>(() => {
@@ -128,34 +123,11 @@ export function LibraryCard() {
   useEffect(() => {
     let cancelled = false;
 
-    publicApiRequest<{ exercises: ExerciseApiRecord[] }>('/exercises')
-      .then((payload) => {
-        if (cancelled) {
-          return;
+    fetchExerciseLibraryFamilies()
+      .then((families) => {
+        if (!cancelled) {
+          setFetchedExercises(families);
         }
-
-        const byId = new Map(payload.exercises.map((exercise) => [exercise.exerciseId, exercise]));
-        const mapped = payload.exercises
-          .map((exercise) => ({
-            exerciseId: exercise.exerciseId,
-            name: exercise.name,
-            equipment: titleize(exercise.equipment[0] || 'machine'),
-            attachments: (exercise.attachments || []).map(titleize),
-            primaryMuscles: exercise.primaryMuscles.map(titleize),
-            secondaryMuscles: exercise.secondaryMuscles.map(titleize),
-            tips: exercise.tips,
-            alternatives: exercise.alternatives.map((alternativeId) => {
-              const alternative = byId.get(alternativeId);
-              return {
-                exerciseId: alternativeId,
-                name: alternative?.name || titleize(alternativeId),
-                equipment: titleize(alternative?.equipment?.[0] || 'machine'),
-              };
-            }),
-          }))
-          .sort((a, b) => a.name.localeCompare(b.name));
-
-        setFetchedExercises(mapped);
       })
       .catch(() => undefined);
 
@@ -179,25 +151,16 @@ export function LibraryCard() {
         'POST',
         payload,
       );
-      const exercise = response.exercise;
-      const mapped: ExerciseInfoRecord = {
-        exerciseId: exercise.exerciseId,
-        name: exercise.name,
-        equipment: titleize(exercise.equipment[0] || 'machine'),
-        attachments: (exercise.attachments || []).map(titleize),
-        primaryMuscles: exercise.primaryMuscles.map(titleize),
-        secondaryMuscles: exercise.secondaryMuscles.map(titleize),
-        tips: exercise.tips,
-        alternatives: [],
-      };
+      const mapped = mapExerciseApiToVariants([response.exercise])[0];
 
       setFetchedExercises((current) => {
-        const next = [...current.filter((item) => item.exerciseId !== mapped.exerciseId), mapped];
-        return next.sort((a, b) => a.name.localeCompare(b.name));
+        const nextVariants = current.flatMap((item) => item.variants || [item]);
+        const merged = [...nextVariants.filter((item) => item.exerciseId !== mapped.exerciseId), mapped];
+        return mapVariantsToFamilies(merged);
       });
       setShowAddExercise(false);
       setSelectedExerciseId(mapped.exerciseId);
-      setSelectedExercise(mapped);
+      setSelectedExercise({ ...mapped, name: mapped.familyName || mapped.name, variants: [mapped] });
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Could not add exercise.';
       setAddError(message);
@@ -210,7 +173,22 @@ export function LibraryCard() {
     setDeleteLoading(true);
     try {
       await publicApiRequest<{ message: string }>(`/exercises/${exerciseId}`, 'DELETE');
-      setFetchedExercises((current) => current.filter((item) => item.exerciseId !== exerciseId));
+      setFetchedExercises((current) => current.flatMap((item) => {
+        const variants = item.variants?.filter((variant) => variant.exerciseId !== exerciseId);
+        if (item.exerciseId === exerciseId && !item.variants?.length) {
+          return [];
+        }
+        if (!variants?.length) {
+          return item.exerciseId === exerciseId ? [] : [item];
+        }
+
+        const nextRepresentative = variants[0];
+        return [{
+          ...nextRepresentative,
+          name: nextRepresentative.familyName || nextRepresentative.name,
+          variants,
+        }];
+      }));
       setSelectedExerciseId(null);
       setSelectedExercise(null);
     } catch (error) {
@@ -259,7 +237,7 @@ export function LibraryCard() {
           </View>
         </View>
 
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={libraryCardStyles.list}>
+        <View style={libraryCardStyles.list}>
           {groupedExercises.length ? groupedExercises.map((section) => (
             <View key={section.key} style={libraryCardStyles.section}>
               <Pressable
@@ -315,10 +293,12 @@ export function LibraryCard() {
                     >
                       <View style={libraryCardStyles.rowCopy}>
                         <Text style={[libraryCardStyles.rowTitle, { color: palette.text }]}>
-                          {exercise.name}
+                          {exercise.familyName || exercise.name}
                         </Text>
                         <Text style={[libraryCardStyles.rowMeta, { color: palette.muted }]}>
-                          {exercise.equipment} · {exercise.primaryMuscles.join(', ')}
+                          {exercise.variants && exercise.variants.length > 1
+                            ? `${exercise.variants.length} types`
+                            : `${exercise.equipment} · ${exercise.primaryMuscles.join(', ')}`}
                         </Text>
                       </View>
                       <Text style={[libraryCardStyles.rowChevron, { color: palette.muted }]}>›</Text>
@@ -361,7 +341,7 @@ export function LibraryCard() {
               </View>
             </View>
           </Pressable>
-        </ScrollView>
+        </View>
       </View>
 
       <ExerciseInfoModal
@@ -376,9 +356,12 @@ export function LibraryCard() {
           setSelectedExercise(null);
         }}
         onAlternativePress={(exerciseId) => {
-          const nextExercise = fetchedExercises.find((exercise) => exercise.exerciseId === exerciseId);
+          const nextExercise = fetchedExercises.find((exercise) => (
+            exercise.exerciseId === exerciseId || exercise.variants?.some((variant) => variant.exerciseId === exerciseId)
+          ));
           if (nextExercise) {
-            openExercise(nextExercise);
+            const exactVariant = nextExercise.variants?.find((variant) => variant.exerciseId === exerciseId);
+            openExercise(exactVariant ? { ...nextExercise, ...exactVariant, variants: nextExercise.variants } : nextExercise);
           }
         }}
       />
@@ -393,3 +376,223 @@ export function LibraryCard() {
     </>
   );
 }
+
+const libraryCardStyles = StyleSheet.create({
+  card: {
+    paddingHorizontal: 8,
+    paddingTop: 6,
+    paddingBottom: 0,
+    gap: 18,
+  },
+  brandRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  brandLockup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  brandMiniLogo: {
+    width: 42,
+    height: 42,
+  },
+  brandTextLogo: {
+    width: 178,
+    height: 24,
+  },
+  introRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: 14,
+  },
+  addButtonWrap: {
+    alignItems: 'center',
+    gap: 6,
+    width: 68,
+    paddingTop: 2,
+  },
+  addButton: {
+    width: 54,
+    height: 54,
+    borderRadius: 16,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  addButtonPlus: {
+    fontSize: 34,
+    lineHeight: 36,
+    fontWeight: '300',
+    marginTop: -3,
+  },
+  addButtonLabel: {
+    fontSize: 11,
+    lineHeight: 13,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  headerCopy: {
+    flex: 1,
+    gap: 10,
+    maxWidth: '82%',
+  },
+  title: {
+    fontSize: 34,
+    lineHeight: 38,
+    fontWeight: '900',
+    letterSpacing: -0.8,
+  },
+  body: {
+    fontSize: 15,
+    lineHeight: 18,
+    fontWeight: '400',
+  },
+  list: {
+    gap: 10,
+    paddingBottom: 6,
+  },
+  section: {
+    gap: 8,
+  },
+  sectionHeader: {
+    borderWidth: 1,
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
+  sectionHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    flex: 1,
+  },
+  sectionThumbnail: {
+    width: 64,
+    height: 64,
+    borderRadius: 14,
+  },
+  sectionCopy: {
+    gap: 2,
+    flex: 1,
+  },
+  sectionTitle: {
+    fontSize: 19,
+    fontWeight: '800',
+    letterSpacing: -0.4,
+    textTransform: 'uppercase',
+  },
+  sectionSubtitle: {
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  sectionHeaderRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  sectionCountBadge: {
+    minWidth: 44,
+    height: 44,
+    borderRadius: 15,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 8,
+  },
+  sectionCount: {
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  sectionChevron: {
+    fontSize: 22,
+    fontWeight: '700',
+  },
+  sectionList: {
+    gap: 8,
+    paddingHorizontal: 6,
+  },
+  row: {
+    borderWidth: 1,
+    borderRadius: 18,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  rowCopy: {
+    flex: 1,
+    gap: 4,
+  },
+  rowTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    letterSpacing: -0.3,
+  },
+  rowMeta: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  rowChevron: {
+    fontSize: 20,
+    fontWeight: '700',
+  },
+  emptyState: {
+    borderWidth: 1,
+    borderRadius: 18,
+    paddingHorizontal: 16,
+    paddingVertical: 18,
+    gap: 8,
+  },
+  emptyStateTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    letterSpacing: -0.3,
+  },
+  emptyStateBody: {
+    fontSize: 14,
+    lineHeight: 21,
+    fontWeight: '500',
+  },
+  promoCard: {
+    borderWidth: 1,
+    borderRadius: 22,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 16,
+    marginTop: 2,
+  },
+  promoLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    flex: 1,
+  },
+  promoLogo: {
+    width: 48,
+    height: 48,
+  },
+  promoCopy: {
+    gap: 4,
+    flex: 1,
+  },
+  promoTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    letterSpacing: -0.2,
+  },
+  promoBody: {
+    fontSize: 14,
+    lineHeight: 20,
+    fontWeight: '500',
+  },
+});

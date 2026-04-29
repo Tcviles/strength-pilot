@@ -3,10 +3,11 @@ import React, { createContext, useCallback, useEffect, useMemo, useState } from 
 import { CONFIG } from '../config/appConfig';
 import { getSuggestedWeight, isCompoundExercise } from '../constants/exercises';
 import { buildGymFromType, DEFAULT_GYM, DEFAULT_PROFILE } from '../constants/defaults';
-import { apiRequest } from '../services/api';
+import { apiRequest, publicApiRequest } from '../services/api';
 import { getStoredObject, setStoredObject, STORAGE_KEYS } from '../services/storage';
 import type { Crowd, Gym, Profile, Workout, WorkoutExerciseProgress, WorkoutSetProgress } from '../types/app';
 import { useAuth } from '../hooks/useAuth';
+import { humanize } from '../utils/format';
 
 type AppScreen = 'home' | 'workout' | 'progress' | 'library' | 'profile';
 
@@ -57,8 +58,9 @@ type AppContextValue = {
   setCrowd: (value: Crowd) => void;
   setMood: (value: string) => void;
   saveOnboarding: () => Promise<void>;
-  generateWorkout: (options?: { openWorkout?: boolean; startOnComplete?: boolean }) => Promise<void>;
+  generateWorkout: (options?: { openWorkout?: boolean; startOnComplete?: boolean; focus?: string }) => Promise<void>;
   generateGuestWorkout: (category: string) => Promise<void>;
+  createCustomWorkout: () => void;
   startWorkout: () => Promise<void>;
   openWorkout: () => void;
   backHome: () => void;
@@ -67,6 +69,7 @@ type AppContextValue = {
   updateWorkoutExerciseTargetSets: (exerciseIndex: number, targetSets: number) => void;
   removeWorkoutExercise: (exerciseIndex: number) => void;
   insertWorkoutExercise: (insertIndex: number, exerciseId: string) => void;
+  removeWorkoutSet: (exerciseIndex: number, setIndex: number) => void;
   setActiveExerciseIndex: (index: number) => void;
   updateWorkoutSetField: (exerciseIndex: number, setIndex: number, field: 'actualWeight' | 'actualReps', value: string) => void;
   completeWorkoutSet: (exerciseIndex: number, setIndex: number) => void;
@@ -78,142 +81,6 @@ type AppContextValue = {
 };
 
 export const AppContext = createContext<AppContextValue | undefined>(undefined);
-
-type GuestWorkoutTemplate = {
-  label: string;
-  goal: Profile['goal'];
-  exercises: Array<{
-    exerciseId: string;
-    targetSets: number;
-    targetReps: string;
-    restSeconds: number;
-  }>;
-};
-
-const GUEST_WORKOUT_TEMPLATES: Record<string, GuestWorkoutTemplate> = {
-  push: {
-    label: 'Push',
-    goal: 'hypertrophy',
-    exercises: [
-      { exerciseId: 'bb_bench_press', targetSets: 4, targetReps: '6-8', restSeconds: 120 },
-      { exerciseId: 'incline_db_press', targetSets: 3, targetReps: '8-10', restSeconds: 90 },
-      { exerciseId: 'ohp', targetSets: 3, targetReps: '6-8', restSeconds: 120 },
-      { exerciseId: 'lateral_raise', targetSets: 3, targetReps: '12-15', restSeconds: 60 },
-      { exerciseId: 'tricep_pushdown', targetSets: 3, targetReps: '10-12', restSeconds: 60 },
-    ],
-  },
-  pull: {
-    label: 'Pull',
-    goal: 'hypertrophy',
-    exercises: [
-      { exerciseId: 'lat_pulldown', targetSets: 4, targetReps: '8-10', restSeconds: 90 },
-      { exerciseId: 'barbell_row', targetSets: 4, targetReps: '6-8', restSeconds: 120 },
-      { exerciseId: 'seated_cable_row', targetSets: 3, targetReps: '10-12', restSeconds: 75 },
-      { exerciseId: 'face_pull', targetSets: 3, targetReps: '12-15', restSeconds: 60 },
-      { exerciseId: 'hammer_curl', targetSets: 3, targetReps: '10-12', restSeconds: 60 },
-    ],
-  },
-  legs: {
-    label: 'Legs',
-    goal: 'strength',
-    exercises: [
-      { exerciseId: 'back_squat', targetSets: 4, targetReps: '5-6', restSeconds: 150 },
-      { exerciseId: 'rdl', targetSets: 4, targetReps: '6-8', restSeconds: 120 },
-      { exerciseId: 'leg_press', targetSets: 3, targetReps: '10-12', restSeconds: 90 },
-      { exerciseId: 'leg_curl', targetSets: 3, targetReps: '10-12', restSeconds: 60 },
-      { exerciseId: 'standing_calf_raise', targetSets: 4, targetReps: '12-15', restSeconds: 45 },
-    ],
-  },
-  upper_body: {
-    label: 'Upper Body',
-    goal: 'general',
-    exercises: [
-      { exerciseId: 'bb_bench_press', targetSets: 4, targetReps: '6-8', restSeconds: 120 },
-      { exerciseId: 'lat_pulldown', targetSets: 4, targetReps: '8-10', restSeconds: 90 },
-      { exerciseId: 'ohp', targetSets: 3, targetReps: '6-8', restSeconds: 120 },
-      { exerciseId: 'seated_cable_row', targetSets: 3, targetReps: '10-12', restSeconds: 75 },
-      { exerciseId: 'tricep_pushdown', targetSets: 3, targetReps: '10-12', restSeconds: 60 },
-      { exerciseId: 'hammer_curl', targetSets: 3, targetReps: '10-12', restSeconds: 60 },
-    ],
-  },
-  lower_body: {
-    label: 'Lower Body',
-    goal: 'strength',
-    exercises: [
-      { exerciseId: 'back_squat', targetSets: 4, targetReps: '5-6', restSeconds: 150 },
-      { exerciseId: 'rdl', targetSets: 4, targetReps: '6-8', restSeconds: 120 },
-      { exerciseId: 'bulgarian_split_squat', targetSets: 3, targetReps: '8-10', restSeconds: 90 },
-      { exerciseId: 'leg_curl', targetSets: 3, targetReps: '10-12', restSeconds: 60 },
-      { exerciseId: 'standing_calf_raise', targetSets: 4, targetReps: '12-15', restSeconds: 45 },
-    ],
-  },
-  chest: {
-    label: 'Chest',
-    goal: 'hypertrophy',
-    exercises: [
-      { exerciseId: 'bb_bench_press', targetSets: 4, targetReps: '6-8', restSeconds: 120 },
-      { exerciseId: 'incline_db_press', targetSets: 4, targetReps: '8-10', restSeconds: 90 },
-      { exerciseId: 'machine_chest_press', targetSets: 3, targetReps: '10-12', restSeconds: 75 },
-      { exerciseId: 'cable_fly', targetSets: 3, targetReps: '12-15', restSeconds: 60 },
-      { exerciseId: 'push_up', targetSets: 2, targetReps: '12-15', restSeconds: 45 },
-    ],
-  },
-  back: {
-    label: 'Back',
-    goal: 'hypertrophy',
-    exercises: [
-      { exerciseId: 'deadlift', targetSets: 3, targetReps: '4-6', restSeconds: 150 },
-      { exerciseId: 'pull_up', targetSets: 3, targetReps: '6-8', restSeconds: 120 },
-      { exerciseId: 'barbell_row', targetSets: 4, targetReps: '6-8', restSeconds: 120 },
-      { exerciseId: 'seated_cable_row', targetSets: 3, targetReps: '10-12', restSeconds: 75 },
-      { exerciseId: 'face_pull', targetSets: 3, targetReps: '12-15', restSeconds: 60 },
-    ],
-  },
-  shoulders: {
-    label: 'Shoulders',
-    goal: 'hypertrophy',
-    exercises: [
-      { exerciseId: 'ohp', targetSets: 4, targetReps: '6-8', restSeconds: 120 },
-      { exerciseId: 'db_shoulder_press', targetSets: 3, targetReps: '8-10', restSeconds: 90 },
-      { exerciseId: 'lateral_raise', targetSets: 4, targetReps: '12-15', restSeconds: 60 },
-      { exerciseId: 'rear_delt_fly', targetSets: 3, targetReps: '12-15', restSeconds: 60 },
-      { exerciseId: 'face_pull', targetSets: 3, targetReps: '12-15', restSeconds: 60 },
-    ],
-  },
-  arms: {
-    label: 'Arms',
-    goal: 'hypertrophy',
-    exercises: [
-      { exerciseId: 'close_grip_bench', targetSets: 3, targetReps: '6-8', restSeconds: 120 },
-      { exerciseId: 'tricep_pushdown', targetSets: 3, targetReps: '10-12', restSeconds: 60 },
-      { exerciseId: 'overhead_tricep_ext', targetSets: 3, targetReps: '10-12', restSeconds: 60 },
-      { exerciseId: 'bb_curl', targetSets: 3, targetReps: '8-10', restSeconds: 60 },
-      { exerciseId: 'hammer_curl', targetSets: 3, targetReps: '10-12', restSeconds: 60 },
-    ],
-  },
-  abs: {
-    label: 'Abs',
-    goal: 'general',
-    exercises: [
-      { exerciseId: 'cable_crunch', targetSets: 4, targetReps: '12-15', restSeconds: 45 },
-      { exerciseId: 'hanging_leg_raise', targetSets: 4, targetReps: '10-12', restSeconds: 45 },
-      { exerciseId: 'plank', targetSets: 3, targetReps: '1-1', restSeconds: 45 },
-      { exerciseId: 'cable_crunch', targetSets: 3, targetReps: '12-15', restSeconds: 45 },
-    ],
-  },
-  full_body: {
-    label: 'Full Body',
-    goal: 'general',
-    exercises: [
-      { exerciseId: 'back_squat', targetSets: 3, targetReps: '5-6', restSeconds: 150 },
-      { exerciseId: 'bb_bench_press', targetSets: 3, targetReps: '6-8', restSeconds: 120 },
-      { exerciseId: 'lat_pulldown', targetSets: 3, targetReps: '8-10', restSeconds: 90 },
-      { exerciseId: 'rdl', targetSets: 3, targetReps: '8-10', restSeconds: 120 },
-      { exerciseId: 'db_shoulder_press', targetSets: 2, targetReps: '10-12', restSeconds: 75 },
-      { exerciseId: 'cable_crunch', targetSets: 2, targetReps: '12-15', restSeconds: 45 },
-    ],
-  },
-};
 
 function parseSuggestedReps(targetReps: string) {
   const parts = targetReps
@@ -265,27 +132,6 @@ function buildWorkoutProgress(workout: Workout, experience: Profile['experience'
   return workout.exercises.map((exercise) => buildExerciseProgress(exercise, experience));
 }
 
-function buildGuestWorkout(
-  category: string,
-  profile: Profile,
-): { workout: Workout; focus: string } {
-  const template = GUEST_WORKOUT_TEMPLATES[category] || GUEST_WORKOUT_TEMPLATES.full_body;
-  const durationMinutes = profile.sessionLength || (template.exercises.length >= 6 ? 60 : 45);
-
-  return {
-    focus: template.label,
-    workout: {
-      workoutId: `guest-${category}-${Date.now()}`,
-      goal: profile.goal || template.goal,
-      durationMinutes,
-      exercises: template.exercises.map((exercise) => ({
-        ...exercise,
-        sets: [],
-      })),
-    },
-  };
-}
-
 function buildInsertedExercise(exerciseId: string) {
   const moderateReps = isCompoundExercise(exerciseId) ? '6-8' : '10-12';
   const restSeconds = isCompoundExercise(exerciseId) ? 90 : 60;
@@ -296,6 +142,18 @@ function buildInsertedExercise(exerciseId: string) {
     targetReps: moderateReps,
     restSeconds,
     sets: [],
+  };
+}
+
+function buildCustomWorkout(profile: Profile): { workout: Workout; focus: string } {
+  return {
+    focus: 'Custom Workout',
+    workout: {
+      workoutId: `custom-${Date.now()}`,
+      goal: profile.goal || 'general',
+      durationMinutes: profile.sessionLength || 60,
+      exercises: [],
+    },
   };
 }
 
@@ -600,8 +458,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }, [draftGym.type, draftProfile.daysPerWeek, draftProfile.experience, draftProfile.firstName, draftProfile.goal, draftProfile.sessionLength, persistDraftSettings, tokens?.idToken]);
 
-  const generateWorkout = useCallback(async (options?: { openWorkout?: boolean; startOnComplete?: boolean }) => {
+  const generateWorkout = useCallback(async (options?: { openWorkout?: boolean; startOnComplete?: boolean; focus?: string }) => {
     if (!tokens?.idToken) {
+      return;
+    }
+    if (workoutStartedAt && workout) {
+      setStatus('Finish or cancel your current workout before starting another.');
       return;
     }
 
@@ -615,6 +477,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         tokens.idToken,
         'POST',
         {
+          focus: options?.focus,
           dayIndex: 0,
           limitedTime: draftProfile.sessionLength <= 45,
           gymCrowdedness: crowd,
@@ -641,7 +504,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setLoading(false);
     }
-  }, [tokens?.idToken, draftProfile.experience, draftProfile.sessionLength, crowd, mood, persistDraftSettings]);
+  }, [tokens?.idToken, workoutStartedAt, workout, draftProfile.experience, draftProfile.sessionLength, crowd, mood, persistDraftSettings]);
 
   const openWorkout = useCallback(() => {
     if (!workout) {
@@ -660,6 +523,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const startWorkout = useCallback(async () => {
     if (workout) {
+      if (workout.exercises.length === 0) {
+        setStatus('Add at least one exercise before starting.');
+        setCurrentScreen('workout');
+        return;
+      }
       if (!workoutStartedAt) {
         setWorkoutStartedAt(new Date().toISOString());
         setStatus('Workout in progress.');
@@ -758,6 +626,68 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setStatus('Exercise added to workout.');
   }, [draftProfile.experience, profile?.experience, workout]);
 
+  const removeWorkoutSet = useCallback((exerciseIndex: number, setIndex: number) => {
+    if (!workout) {
+      return;
+    }
+
+    const progressEntry = workoutProgress[exerciseIndex];
+    if (!progressEntry || progressEntry.setProgress.length <= 1) {
+      return;
+    }
+
+    setWorkout((current) => {
+      if (!current) {
+        return current;
+      }
+
+      return {
+        ...current,
+        exercises: current.exercises.map((exercise, currentExerciseIndex) =>
+          currentExerciseIndex === exerciseIndex
+            ? {
+                ...exercise,
+                targetSets: Math.max(1, exercise.targetSets - 1),
+              }
+            : exercise,
+        ),
+      };
+    });
+
+    setWorkoutProgress((current) =>
+      current.map((exerciseProgress, currentExerciseIndex) => {
+        if (currentExerciseIndex !== exerciseIndex) {
+          return exerciseProgress;
+        }
+
+        const remainingSets = exerciseProgress.setProgress.filter((_, currentSetIndex) => currentSetIndex !== setIndex);
+        return {
+          ...exerciseProgress,
+          setProgress: remainingSets.map((setEntry, nextSetIndex) => ({
+            ...setEntry,
+            setNumber: nextSetIndex + 1,
+          })),
+        };
+      }),
+    );
+
+    setPendingFeedback((current) => {
+      if (!current || current.exerciseIndex !== exerciseIndex) {
+        return current;
+      }
+      if (current.setIndex === setIndex) {
+        return null;
+      }
+      if (current.setIndex > setIndex) {
+        return { ...current, setIndex: current.setIndex - 1 };
+      }
+      return current;
+    });
+
+    setRestStartedAt(null);
+    setStatus('Set removed from workout.');
+  }, [workout, workoutProgress]);
+
   const updateWorkoutSetField = useCallback(
     (exerciseIndex: number, setIndex: number, field: 'actualWeight' | 'actualReps', value: string) => {
       setWorkoutProgress((current) =>
@@ -794,6 +724,39 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const setEntry = progressEntry?.setProgress[setIndex];
 
       if (!exercise || !progressEntry || !setEntry) {
+        return;
+      }
+
+      if (setEntry.completed) {
+        setWorkoutProgress((current) =>
+          current.map((exerciseProgress, currentExerciseIndex) => {
+            if (currentExerciseIndex !== exerciseIndex) {
+              return exerciseProgress;
+            }
+
+            return {
+              ...exerciseProgress,
+              setProgress: exerciseProgress.setProgress.map((currentSetEntry, currentSetIndex) =>
+                currentSetIndex === setIndex
+                  ? {
+                      ...currentSetEntry,
+                      completed: false,
+                      completedAt: undefined,
+                      feedbackScore: undefined,
+                      feedbackDismissed: false,
+                    }
+                  : currentSetEntry,
+              ),
+            };
+          }),
+        );
+
+        setPendingFeedback((current) =>
+          current && current.exerciseIndex === exerciseIndex && current.setIndex === setIndex
+            ? null
+            : current,
+        );
+        setRestStartedAt(null);
         return;
       }
 
@@ -840,33 +803,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           };
         }),
       );
-
-      const currentSetWeight = Number.parseFloat(setEntry.actualWeight || String(setEntry.suggestedWeight) || '0');
-      const currentSetReps = Number.parseInt(setEntry.actualReps || String(setEntry.suggestedReps) || '0', 10);
-      const overPerformed = currentSetWeight >= setEntry.suggestedWeight && currentSetReps >= setEntry.suggestedReps;
-      const underPerformed = currentSetReps > 0 && currentSetReps <= Math.max(1, setEntry.suggestedReps - 2);
-      if (overPerformed || underPerformed) {
-        setWorkout((current) => {
-          if (!current) {
-            return current;
-          }
-
-          return {
-            ...current,
-            exercises: current.exercises.map((currentExercise, currentExerciseIndex) =>
-              currentExerciseIndex === exerciseIndex
-                ? {
-                    ...currentExercise,
-                    restSeconds: Math.max(
-                      45,
-                      currentExercise.restSeconds + (overPerformed ? 15 : -15),
-                    ),
-                  }
-                : currentExercise,
-            ),
-          };
-        });
-      }
 
       setRestStartedAt(completedAt);
 
@@ -1010,11 +946,27 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [clearWorkoutSession]);
 
   const generateGuestWorkout = useCallback(async (category: string) => {
+    if (workoutStartedAt && workout) {
+      setStatus('Finish or cancel your current workout before starting another.');
+      return;
+    }
+
     setLoading(true);
     setError('');
     setStatus('Building your guest workout...');
     try {
-      const response = buildGuestWorkout(category, draftProfile);
+      const response = await publicApiRequest<{ workout: Workout; focus: string }>(
+        '/guest/workouts/generate',
+        'POST',
+        {
+          focus: category,
+          profile: draftProfile,
+          gym: buildGymFromType(draftGym.type, draftGym),
+          limitedTime: draftProfile.sessionLength <= 45,
+          gymCrowdedness: crowd,
+          mood: mood.toLowerCase(),
+        },
+      );
       setWorkout(response.workout);
       setFocus(response.focus);
       setWorkoutProgress(buildWorkoutProgress(response.workout, draftProfile.experience));
@@ -1023,13 +975,31 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setPendingFeedback(null);
       setWorkoutStartedAt(null);
       setCurrentScreen('workout');
-      setStatus(`${response.focus} workout ready.`);
+      setStatus(`${humanize(response.focus)} workout ready.`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not build guest workout.');
     } finally {
       setLoading(false);
     }
-  }, [draftProfile]);
+  }, [draftGym, draftProfile, crowd, mood, workoutStartedAt, workout]);
+
+  const createCustomWorkout = useCallback(() => {
+    if (workoutStartedAt && workout) {
+      setStatus('Finish or cancel your current workout before starting another.');
+      return;
+    }
+
+    const response = buildCustomWorkout(draftProfile);
+    setWorkout(response.workout);
+    setFocus(response.focus);
+    setWorkoutProgress([]);
+    setActiveExerciseIndex(0);
+    setRestStartedAt(null);
+    setPendingFeedback(null);
+    setWorkoutStartedAt(null);
+    setCurrentScreen('workout');
+    setStatus('Custom workout ready. Add your first exercise.');
+  }, [draftProfile, workoutStartedAt, workout]);
 
   const value = useMemo(
     () => ({
@@ -1061,6 +1031,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       saveOnboarding,
       generateWorkout,
       generateGuestWorkout,
+      createCustomWorkout,
       startWorkout,
       openWorkout,
       backHome,
@@ -1069,6 +1040,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       updateWorkoutExerciseTargetSets,
       removeWorkoutExercise,
       insertWorkoutExercise,
+      removeWorkoutSet,
       setActiveExerciseIndex,
       updateWorkoutSetField,
       completeWorkoutSet,
@@ -1103,6 +1075,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       saveOnboarding,
       generateWorkout,
       generateGuestWorkout,
+      createCustomWorkout,
       startWorkout,
       openWorkout,
       backHome,
@@ -1111,6 +1084,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       updateWorkoutExerciseTargetSets,
       removeWorkoutExercise,
       insertWorkoutExercise,
+      removeWorkoutSet,
       setActiveExerciseIndex,
       updateWorkoutSetField,
       completeWorkoutSet,

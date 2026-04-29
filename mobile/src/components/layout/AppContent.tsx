@@ -1,99 +1,28 @@
 import React from 'react';
-import { ActivityIndicator, Image, ImageBackground, ScrollView, StatusBar, Text, View, useWindowDimensions } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { ImageBackground, ScrollView, StatusBar, StyleSheet, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useTheme } from '../../hooks/useTheme';
-import { appContentStyles } from './AppContent.styles';
 import { useAppState } from '../../hooks/useAppState';
-import { useAuth } from '../../hooks/useAuth';
-import { AuthCard } from '../auth/AuthCard';
-import { GuestHomeCard } from '../home/GuestHomeCard';
 import { FooterNav } from '../navigation/FooterNav';
-import { HomeCard } from '../home/HomeCard';
-import { LibraryCard } from '../library/LibraryCard';
-import { OnboardingCard } from '../onboarding/OnboardingCard';
-import { ProfileCard } from '../profile/ProfileCard';
-import { FeaturePlaceholderCard } from '../shared/FeaturePlaceholderCard';
-import { WorkoutCard } from '../workout/WorkoutCard';
-import { WorkoutPreviewCard } from '../workout/WorkoutPreviewCard';
 import { WorkoutTopBar } from '../workout/WorkoutTopBar';
+import { AppRouter } from './AppRouter';
+import { AppStartupLoader } from './AppStartupLoader';
+import { useAppShellState } from './useAppShellState';
 
 export function AppContent() {
-  const insets = useSafeAreaInsets();
-  const { width, height } = useWindowDimensions();
   const { palette } = useTheme();
+  const { backHome, navigateToScreen, openWorkout } = useAppState();
   const {
-    tokens,
-    hydrating: authHydrating,
-    status: authStatus,
-    error: authError,
-    loading: authLoading,
-  } = useAuth();
-  const {
-    workout,
-    bootstrapping,
-    hydratingSession,
-    needsOnboarding,
-    profile,
-    gym,
-    currentScreen,
-    workoutStartedAt,
-    isGuestMode,
-    status,
-    error,
-    loading,
-    backHome,
-    navigateToScreen,
-    openWorkout,
-  } = useAppState();
-
-  const showStartupLoader =
-    authHydrating ||
-    hydratingSession ||
-    (Boolean(tokens?.idToken) && bootstrapping && !needsOnboarding && (!profile || !gym));
-
-  const currentStage = needsOnboarding
-    ? 'onboarding'
-    : currentScreen === 'profile'
-      ? (tokens ? 'profile' : 'auth')
-      : currentScreen === 'workout' && workout
-        ? (workoutStartedAt ? 'workout' : 'workout-preview')
-        : currentScreen === 'progress'
-          ? 'progress'
-          : currentScreen === 'library'
-            ? 'library'
-            : isGuestMode
-              ? 'guest-home'
-              : 'home';
-
-  const displayLoading = !tokens ? authLoading : loading;
-  const displayStatus = !tokens ? authStatus : status;
-  const displayError = !tokens ? authError : error;
-  const isAuthStage = currentStage === 'auth';
-  const isOnboardingStage = currentStage === 'onboarding';
-  const isTabletLike = width >= 700;
-  const hasStickyFooter = !isAuthStage && !isOnboardingStage;
-  const hasProfileFooter = currentStage === 'auth';
-  const shouldShowFooter = hasStickyFooter || hasProfileFooter;
-  const hasStickyWorkoutBar = currentStage === 'workout' && Boolean(workout) && Boolean(workoutStartedAt);
-  const activeTab = currentStage === 'workout'
-    ? 'workout'
-    : currentStage === 'profile' || currentStage === 'auth'
-      ? 'profile'
-      : currentStage === 'progress'
-        ? 'progress'
-        : currentStage === 'library'
-          ? 'library'
-          : 'home';
-  const authStageWidth = isTabletLike ? Math.min(width - 72, 860) : undefined;
-  const authViewportMinHeight = Math.max(0, height - insets.top);
-  const authLogoWidth = isTabletLike ? 360 : 252;
-  const authLogoHeight = isTabletLike ? 220 : 156;
-  const authTextLogoWidth = isTabletLike ? 320 : 224;
-  const authTextLogoHeight = isTabletLike ? 62 : 44;
-  const authTaglineFontSize = isTabletLike ? 22 : 14;
-  const authStatusBannerTextColor = displayError ? '#fff' : palette.text;
-  const authStatusBannerTextStyle = { color: authStatusBannerTextColor };
+    insets,
+    showStartupLoader,
+    isAuthStage,
+    isOnboardingStage,
+    shouldShowFooter,
+    hasStickyWorkoutBar,
+    activeTab,
+    authViewportMinHeight,
+  } = useAppShellState();
   const backgroundImageStyle = isAuthStage
     ? appContentStyles.authBackgroundImage
     : isOnboardingStage
@@ -106,42 +35,7 @@ export function AppContent() {
       : appContentStyles.appBackgroundOverlay;
 
   if (showStartupLoader) {
-    return (
-      <SafeAreaView
-        edges={['top']}
-        style={[appContentStyles.safeArea, { backgroundColor: palette.page }]}
-      >
-        <StatusBar barStyle="light-content" />
-        <View pointerEvents="none" style={appContentStyles.backgroundWrap}>
-          <ImageBackground
-            source={require('../../media/AppBackground.png')}
-            style={appContentStyles.backgroundWrap}
-            imageStyle={appContentStyles.authBackgroundImage}
-            resizeMode="cover"
-          >
-            <View
-              style={[
-                appContentStyles.authBackgroundOverlay,
-                { backgroundColor: palette.page },
-              ]}
-            />
-          </ImageBackground>
-        </View>
-        <View style={appContentStyles.startupLoaderWrap}>
-          <View style={[appContentStyles.startupLoaderCard, { backgroundColor: palette.card, borderColor: palette.line }]}>
-            <Image
-              source={require('../../media/LoginLogo.png')}
-              style={appContentStyles.startupLoaderLogo}
-              resizeMode="contain"
-            />
-            <ActivityIndicator color={palette.accent} size="large" />
-            <Text style={[appContentStyles.startupLoaderText, { color: palette.text }]}>
-              Restoring your session...
-            </Text>
-          </View>
-        </View>
-      </SafeAreaView>
-    );
+    return <AppStartupLoader />;
   }
 
   return (
@@ -153,8 +47,8 @@ export function AppContent() {
       <View pointerEvents="none" style={appContentStyles.backgroundWrap}>
         <ImageBackground
           source={require('../../media/AppBackground.png')}
-          style={appContentStyles.backgroundWrap}
-          imageStyle={backgroundImageStyle}
+          style={appContentStyles.backgroundImageFill}
+          imageStyle={[appContentStyles.backgroundImageCover, backgroundImageStyle]}
           resizeMode="cover"
         >
           <View
@@ -169,6 +63,8 @@ export function AppContent() {
       <ScrollView
         showsVerticalScrollIndicator={false}
         showsHorizontalScrollIndicator={false}
+        overScrollMode="never"
+        persistentScrollbar={false}
         contentContainerStyle={[
           appContentStyles.scrollContent,
           isAuthStage
@@ -182,88 +78,7 @@ export function AppContent() {
         ]}
         style={appContentStyles.stageScroll}
       >
-          {isAuthStage ? (
-            <View style={[appContentStyles.authStageWrap, authStageWidth ? { width: authStageWidth } : null]}>
-              <View style={appContentStyles.authHero}>
-                <Image
-                  source={require('../../media/LoginLogo.png')}
-                  style={[appContentStyles.authLogo, { width: authLogoWidth, height: authLogoHeight }]}
-                  resizeMode="contain"
-                />
-                <Image
-                  source={require('../../media/TextLogo.png')}
-                  style={[appContentStyles.authTextLogo, { width: authTextLogoWidth, height: authTextLogoHeight }]}
-                  resizeMode="contain"
-                />
-                <Text style={[appContentStyles.authTagline, { color: palette.muted, fontSize: authTaglineFontSize }]}>
-                  All the tools to stay on course.
-                </Text>
-              </View>
-              {(displayError || displayStatus !== 'Ready') ? (
-                <View
-                  style={[
-                    appContentStyles.authStatusBanner,
-                    {
-                      backgroundColor: displayError ? palette.error : palette.panel,
-                      borderColor: displayError ? palette.error : palette.line,
-                    },
-                  ]}
-                >
-                  <Text
-                    style={[
-                      appContentStyles.authStatusBannerText,
-                      authStatusBannerTextStyle,
-                    ]}
-                  >
-                    {displayError || displayStatus}
-                  </Text>
-                </View>
-              ) : null}
-              <AuthCard />
-            </View>
-          ) : null}
-
-          {(displayError || (!isAuthStage && !isOnboardingStage && displayStatus !== 'Ready' && displayStatus !== 'Signed in and synced.')) && !isOnboardingStage && !isAuthStage && currentStage !== 'workout' ? (
-            <View
-              style={[
-                appContentStyles.statusCard,
-                { backgroundColor: palette.card, borderColor: palette.line },
-              ]}
-            >
-              <Text style={[appContentStyles.statusText, { color: palette.text }]}>{displayStatus}</Text>
-              {displayError ? <Text style={[appContentStyles.errorText, { color: palette.error }]}>{displayError}</Text> : null}
-            </View>
-          ) : null}
-
-          {isOnboardingStage ? <OnboardingCard /> : null}
-
-          {currentStage === 'home' ? <HomeCard /> : null}
-
-          {currentStage === 'guest-home' ? <GuestHomeCard /> : null}
-
-          {currentStage === 'workout' && workout ? <WorkoutCard /> : null}
-
-          {currentStage === 'workout-preview' && workout ? <WorkoutPreviewCard /> : null}
-
-          {currentStage === 'profile' ? <ProfileCard /> : null}
-
-          {currentStage === 'progress' ? (
-            <FeaturePlaceholderCard
-              eyebrow={isGuestMode ? 'HISTORY' : 'PROGRESS'}
-              title={isGuestMode ? 'Guest workout history is coming next.' : 'Progress tracking is on deck.'}
-              body={isGuestMode
-                ? 'This is where your recently run guest workouts and quick replays will live.'
-                : 'We’ll stack streaks, weekly volume, and body-part progress here once the workout flow is locked in.'}
-            />
-          ) : null}
-
-          {currentStage === 'library' ? <LibraryCard /> : null}
-
-          {displayLoading ? (
-            <View style={appContentStyles.loadingRow}>
-              <ActivityIndicator color={palette.accent} />
-            </View>
-          ) : null}
+        <AppRouter />
       </ScrollView>
       {shouldShowFooter ? (
         <View style={appContentStyles.footerDock}>
@@ -284,3 +99,79 @@ export function AppContent() {
     </SafeAreaView>
   );
 }
+
+const appContentStyles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    width: '100%',
+  },
+  scrollContent: {
+    flexGrow: 1,
+    width: '100%',
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+  },
+  stageScroll: {
+    width: '100%',
+    backgroundColor: 'transparent',
+    overflow: 'hidden',
+  },
+  authScrollContent: {
+    justifyContent: 'center',
+    paddingTop: 0,
+    paddingBottom: 10,
+  },
+  workoutScrollContent: {
+    paddingTop: 4,
+    paddingHorizontal: 5,
+  },
+  onboardingScrollContent: {
+    justifyContent: 'center',
+    minHeight: '100%',
+    paddingHorizontal: 18,
+    paddingVertical: 24,
+  },
+  backgroundWrap: {
+    ...StyleSheet.absoluteFill,
+    overflow: 'hidden',
+  },
+  backgroundImageFill: {
+    ...StyleSheet.absoluteFill,
+    width: '100%',
+    height: '100%',
+  },
+  backgroundImageCover: {
+    width: '100%',
+    height: '100%',
+  },
+  authBackgroundImage: {
+    opacity: 0.88,
+    transform: [{ scale: 1.18 }],
+  },
+  authBackgroundOverlay: {
+    ...StyleSheet.absoluteFill,
+    opacity: 0.38,
+  },
+  onboardingBackgroundImage: {
+    opacity: 0.84,
+    transform: [{ scale: 1.24 }, { translateX: 40 }, { translateY: -36 }],
+  },
+  onboardingBackgroundOverlay: {
+    ...StyleSheet.absoluteFill,
+    opacity: 0.5,
+  },
+  appBackgroundImage: {
+    opacity: 0.62,
+    transform: [{ scale: 1.22 }, { translateY: 52 }],
+  },
+  appBackgroundOverlay: {
+    ...StyleSheet.absoluteFill,
+    opacity: 0.68,
+  },
+  footerDock: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+});

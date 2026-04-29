@@ -208,6 +208,23 @@ Resources:
             Path: /workouts/generate
             Method: post
 
+  GenerateGuestWorkout:
+    <<: *GeneralFunction
+    Properties:
+      <<: *GeneralProperties
+      FunctionName: !Sub strength-pilot-${Stage}-generateGuestWorkout
+      CodeUri: src/workout
+      Handler: generate_guest_workout.lambda_handler
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref StrengthPilotApi
+            Path: /guest/workouts/generate
+            Method: post
+            Auth:
+              Authorizer: NONE
+
   SwapExercise:
     <<: *GeneralFunction
     Properties:

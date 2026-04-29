@@ -1,18 +1,17 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Modal,
   Pressable,
-  ScrollView,
+  StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native';
 
-import { getExerciseLibraryItems, getExerciseMeta } from '../../constants/exercises';
+import { getExerciseMeta } from '../../constants/exercises';
 import { useAppState } from '../../hooks/useAppState';
 import { useTheme } from '../../hooks/useTheme';
 import { ActionButton } from '../shared/ActionButton';
-import { workoutPreviewCardStyles } from './WorkoutPreviewCard.styles';
+import { WorkoutTemplateEditor } from './WorkoutTemplateEditor';
 
 export function WorkoutPreviewCard() {
   const { palette } = useTheme();
@@ -22,30 +21,14 @@ export function WorkoutPreviewCard() {
     loading,
     startWorkout,
     cancelWorkout,
-    moveWorkoutExercise,
-    updateWorkoutExerciseTargetSets,
-    removeWorkoutExercise,
-    insertWorkoutExercise,
   } = useAppState();
   const [editOpen, setEditOpen] = useState(false);
-  const [addOpen, setAddOpen] = useState(false);
-  const [search, setSearch] = useState('');
-  const [insertIndex, setInsertIndex] = useState<number | null>(null);
 
-  const exerciseChoices = useMemo(() => {
-    const query = search.trim().toLowerCase();
-    return getExerciseLibraryItems().filter((exercise) => {
-      if (!query) {
-        return true;
-      }
-
-      return (
-        exercise.name.toLowerCase().includes(query) ||
-        exercise.equipment.toLowerCase().includes(query) ||
-        exercise.primaryMuscles.join(' ').toLowerCase().includes(query)
-      );
-    });
-  }, [search]);
+  useEffect(() => {
+    if (workout && workout.exercises.length === 0) {
+      setEditOpen(true);
+    }
+  }, [workout]);
 
   if (!workout) {
     return null;
@@ -53,19 +36,6 @@ export function WorkoutPreviewCard() {
 
   const estimatedTime = `${workout.durationMinutes} min`;
   const exerciseCount = workout.exercises.length;
-
-  const handleOpenInsert = (targetIndex: number) => {
-    setInsertIndex(targetIndex);
-    setSearch('');
-    setAddOpen(true);
-  };
-
-  const handleAddExercise = (exerciseId: string) => {
-    insertWorkoutExercise(insertIndex ?? workout.exercises.length, exerciseId);
-    setAddOpen(false);
-    setInsertIndex(null);
-    setSearch('');
-  };
 
   return (
     <>
@@ -142,7 +112,7 @@ export function WorkoutPreviewCard() {
                   </Text>
                   <View style={workoutPreviewCardStyles.rowCopy}>
                     <Text style={[workoutPreviewCardStyles.rowTitle, { color: palette.text }]}>
-                      {meta.name}
+                      {meta.displayName}
                     </Text>
                     <Text style={[workoutPreviewCardStyles.rowMeta, { color: palette.muted }]}>
                       {meta.equipment} · {exercise.targetSets} sets
@@ -172,8 +142,9 @@ export function WorkoutPreviewCard() {
               </Text>
             </Pressable>
             <ActionButton
+              grow
               label={loading ? 'Preparing...' : 'Start Workout'}
-              disabled={loading}
+              disabled={loading || workout.exercises.length === 0}
               onPress={() => startWorkout().catch(() => undefined)}
             />
           </View>
@@ -182,227 +153,174 @@ export function WorkoutPreviewCard() {
 
       <Modal animationType="fade" transparent visible={editOpen} onRequestClose={() => setEditOpen(false)}>
         <View style={workoutPreviewCardStyles.modalBackdrop}>
-          <View
-            style={[
-              workoutPreviewCardStyles.modalCard,
-              { backgroundColor: palette.card, borderColor: palette.line },
-            ]}
-          >
-            <View style={workoutPreviewCardStyles.modalHeader}>
-              <Text style={[workoutPreviewCardStyles.modalTitle, { color: palette.text }]}>
-                Edit Workout
-              </Text>
-              <Pressable
-                onPress={() => setEditOpen(false)}
-                style={[
-                  workoutPreviewCardStyles.closeButton,
-                  { backgroundColor: palette.panel, borderColor: palette.line },
-                ]}
-              >
-                <Text style={[workoutPreviewCardStyles.closeButtonText, { color: palette.text }]}>x</Text>
-              </Pressable>
-            </View>
-
-            <Text style={[workoutPreviewCardStyles.modalHint, { color: palette.muted }]}>
-              Reorder exercises, adjust set targets, or insert a movement that fits your strategy.
-            </Text>
-
-            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={workoutPreviewCardStyles.modalList}>
-              <Pressable
-                onPress={() => handleOpenInsert(0)}
-                style={[
-                  workoutPreviewCardStyles.insertButton,
-                  { backgroundColor: palette.panel, borderColor: palette.line },
-                ]}
-              >
-                <Text style={[workoutPreviewCardStyles.insertButtonText, { color: palette.accent }]}>
-                  Insert exercise at top
-                </Text>
-              </Pressable>
-
-              {workout.exercises.map((exercise, index) => {
-                const meta = getExerciseMeta(exercise.exerciseId);
-                return (
-                  <React.Fragment key={`${exercise.exerciseId}-${index}-edit`}>
-                    <View
-                      style={[
-                        workoutPreviewCardStyles.editRow,
-                        { backgroundColor: palette.panel, borderColor: palette.line },
-                      ]}
-                    >
-                      <View style={workoutPreviewCardStyles.editRowTop}>
-                        <Text style={[workoutPreviewCardStyles.editRowNumber, { color: palette.muted }]}>
-                          {index + 1}
-                        </Text>
-                        <View style={workoutPreviewCardStyles.editRowCopy}>
-                          <Text style={[workoutPreviewCardStyles.editRowTitle, { color: palette.text }]}>
-                            {meta.name}
-                          </Text>
-                          <Text style={[workoutPreviewCardStyles.editRowMeta, { color: palette.muted }]}>
-                            {meta.equipment} · {exercise.targetReps} reps
-                          </Text>
-                        </View>
-                        <View style={workoutPreviewCardStyles.editRowActions}>
-                          <Pressable
-                            onPress={() => moveWorkoutExercise(index, 'up')}
-                            style={[
-                              workoutPreviewCardStyles.iconAction,
-                              { backgroundColor: palette.card, borderColor: palette.line },
-                            ]}
-                          >
-                            <Text style={[workoutPreviewCardStyles.iconActionText, { color: palette.text }]}>↑</Text>
-                          </Pressable>
-                          <Pressable
-                            onPress={() => moveWorkoutExercise(index, 'down')}
-                            style={[
-                              workoutPreviewCardStyles.iconAction,
-                              { backgroundColor: palette.card, borderColor: palette.line },
-                            ]}
-                          >
-                            <Text style={[workoutPreviewCardStyles.iconActionText, { color: palette.text }]}>↓</Text>
-                          </Pressable>
-                          <Pressable
-                            onPress={() => removeWorkoutExercise(index)}
-                            style={[
-                              workoutPreviewCardStyles.iconAction,
-                              { backgroundColor: palette.card, borderColor: palette.line },
-                            ]}
-                          >
-                            <Text style={[workoutPreviewCardStyles.iconActionText, { color: palette.accent }]}>×</Text>
-                          </Pressable>
-                        </View>
-                      </View>
-
-                      <View style={workoutPreviewCardStyles.setStepperRow}>
-                        <Text style={[workoutPreviewCardStyles.setStepperLabel, { color: palette.text }]}>
-                          Target Sets
-                        </Text>
-                        <View style={workoutPreviewCardStyles.setStepper}>
-                          <Pressable
-                            onPress={() => updateWorkoutExerciseTargetSets(index, exercise.targetSets - 1)}
-                            style={[
-                              workoutPreviewCardStyles.setStepperButton,
-                              { backgroundColor: palette.card, borderColor: palette.line },
-                            ]}
-                          >
-                            <Text style={[workoutPreviewCardStyles.setStepperButtonText, { color: palette.text }]}>−</Text>
-                          </Pressable>
-                          <Text style={[workoutPreviewCardStyles.setStepperValue, { color: palette.text }]}>
-                            {exercise.targetSets}
-                          </Text>
-                          <Pressable
-                            onPress={() => updateWorkoutExerciseTargetSets(index, exercise.targetSets + 1)}
-                            style={[
-                              workoutPreviewCardStyles.setStepperButton,
-                              { backgroundColor: palette.card, borderColor: palette.line },
-                            ]}
-                          >
-                            <Text style={[workoutPreviewCardStyles.setStepperButtonText, { color: palette.text }]}>+</Text>
-                          </Pressable>
-                        </View>
-                      </View>
-                    </View>
-
-                    <Pressable
-                      onPress={() => handleOpenInsert(index + 1)}
-                      style={[
-                        workoutPreviewCardStyles.insertButton,
-                        { backgroundColor: palette.panel, borderColor: palette.line },
-                      ]}
-                    >
-                      <Text style={[workoutPreviewCardStyles.insertButtonText, { color: palette.accent }]}>
-                        Insert here
-                      </Text>
-                    </Pressable>
-                  </React.Fragment>
-                );
-              })}
-            </ScrollView>
-
-            <View style={workoutPreviewCardStyles.modalFooter}>
-              <Pressable
-                onPress={cancelWorkout}
-                style={[
-                  workoutPreviewCardStyles.secondaryAction,
-                  { backgroundColor: palette.panel, borderColor: palette.line },
-                ]}
-              >
-                <Text style={[workoutPreviewCardStyles.secondaryActionText, { color: palette.text }]}>
-                  Clear All
-                </Text>
-              </Pressable>
-              <ActionButton label="Save Changes" onPress={() => setEditOpen(false)} />
-            </View>
-          </View>
-        </View>
-      </Modal>
-
-      <Modal animationType="fade" transparent visible={addOpen} onRequestClose={() => setAddOpen(false)}>
-        <View style={workoutPreviewCardStyles.modalBackdrop}>
-          <View
-            style={[
-              workoutPreviewCardStyles.modalCard,
-              { backgroundColor: palette.card, borderColor: palette.line },
-            ]}
-          >
-            <View style={workoutPreviewCardStyles.modalHeader}>
-              <Text style={[workoutPreviewCardStyles.modalTitle, { color: palette.text }]}>
-                Add Exercise
-              </Text>
-              <Pressable
-                onPress={() => setAddOpen(false)}
-                style={[
-                  workoutPreviewCardStyles.closeButton,
-                  { backgroundColor: palette.panel, borderColor: palette.line },
-                ]}
-              >
-                <Text style={[workoutPreviewCardStyles.closeButtonText, { color: palette.text }]}>x</Text>
-              </Pressable>
-            </View>
-
-            <TextInput
-              value={search}
-              onChangeText={setSearch}
-              placeholder="Search exercises"
-              placeholderTextColor={palette.placeholder}
-              style={[
-                workoutPreviewCardStyles.searchInput,
-                { backgroundColor: palette.panel, borderColor: palette.line, color: palette.text },
-              ]}
-            />
-
-            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={workoutPreviewCardStyles.modalList}>
-              {exerciseChoices.map((exercise) => (
+          <WorkoutTemplateEditor
+            variant="preview"
+            title="Edit Workout"
+            subtitle="Reorder, trim, and add exercises before you start."
+            onClose={() => setEditOpen(false)}
+            footer={(
+              <View style={workoutPreviewCardStyles.modalFooter}>
                 <Pressable
-                  key={exercise.exerciseId}
-                  onPress={() => handleAddExercise(exercise.exerciseId)}
+                  onPress={cancelWorkout}
                   style={[
-                    workoutPreviewCardStyles.exerciseChoice,
+                    workoutPreviewCardStyles.secondaryAction,
                     { backgroundColor: palette.panel, borderColor: palette.line },
                   ]}
                 >
-                  <View style={workoutPreviewCardStyles.exerciseChoiceCopy}>
-                    <Text style={[workoutPreviewCardStyles.exerciseChoiceTitle, { color: palette.text }]}>
-                      {exercise.name}
-                    </Text>
-                    <Text style={[workoutPreviewCardStyles.exerciseChoiceMeta, { color: palette.muted }]}>
-                      {exercise.equipment}
-                    </Text>
-                  </View>
-                  <View
-                    style={[
-                      workoutPreviewCardStyles.exerciseChoiceButton,
-                      { backgroundColor: palette.card, borderColor: palette.line },
-                    ]}
-                  >
-                    <Text style={[workoutPreviewCardStyles.exerciseChoiceButtonText, { color: palette.accent }]}>+</Text>
-                  </View>
+                  <Text style={[workoutPreviewCardStyles.secondaryActionText, { color: palette.text }]}>
+                    Clear All
+                  </Text>
                 </Pressable>
-              ))}
-            </ScrollView>
-          </View>
+                <ActionButton grow label="Save Changes" onPress={() => setEditOpen(false)} />
+              </View>
+            )}
+          />
         </View>
       </Modal>
     </>
   );
 }
+
+const workoutPreviewCardStyles = StyleSheet.create({
+  screen: {
+    gap: 16,
+  },
+  card: {
+    borderWidth: 1,
+    borderRadius: 24,
+    padding: 16,
+    gap: 14,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  headerCopy: {
+    flex: 1,
+    gap: 6,
+  },
+  eyebrow: {
+    fontSize: 12,
+    fontWeight: '800',
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+  },
+  title: {
+    fontSize: 28,
+    lineHeight: 32,
+    fontWeight: '900',
+    letterSpacing: -0.8,
+  },
+  subtitle: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  editButton: {
+    borderWidth: 1,
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  editButtonText: {
+    fontSize: 13,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+  },
+  statsRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  statCard: {
+    flex: 1,
+    borderWidth: 1,
+    borderRadius: 18,
+    padding: 14,
+    gap: 6,
+  },
+  statLabel: {
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+  },
+  statValue: {
+    fontSize: 24,
+    lineHeight: 28,
+    fontWeight: '900',
+    letterSpacing: -0.6,
+  },
+  listWrap: {
+    borderWidth: 1,
+    borderRadius: 20,
+    overflow: 'hidden',
+  },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderTopWidth: 1,
+  },
+  firstRow: {
+    borderTopWidth: 0,
+  },
+  rowIndex: {
+    width: 18,
+    fontSize: 16,
+    fontWeight: '800',
+    textAlign: 'center',
+  },
+  rowCopy: {
+    flex: 1,
+    gap: 4,
+  },
+  rowTitle: {
+    fontSize: 17,
+    lineHeight: 20,
+    fontWeight: '800',
+    letterSpacing: -0.3,
+  },
+  rowMeta: {
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  rowHandle: {
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  rowHandleButton: {
+    paddingHorizontal: 4,
+    paddingVertical: 4,
+  },
+  footerRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  secondaryAction: {
+    flex: 1,
+    minHeight: 54,
+    borderWidth: 1,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 18,
+  },
+  secondaryActionText: {
+    fontSize: 16,
+    fontWeight: '800',
+    letterSpacing: 0.2,
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(5, 8, 12, 0.78)',
+    justifyContent: 'center',
+    padding: 18,
+  },
+  modalFooter: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+});
