@@ -197,6 +197,8 @@ def pick_exercises(
             'targetSets': scheme['sets'],
             'targetReps': scheme['reps'],
             'restSeconds': scheme['restSeconds'],
+            'thumbnailUrl': exercise.thumbnail_url or None,
+            'detailImageUrl': exercise.detail_image_url or None,
             'sets': [],
         })
     return workout_exercises

@@ -6,6 +6,8 @@ export type ExerciseApiRecord = {
   familyId?: string;
   familyName?: string;
   variantLabel?: string;
+  thumbnailUrl?: string;
+  detailImageUrl?: string;
   primaryMuscles: string[];
   secondaryMuscles: string[];
   equipment: string[];
@@ -30,6 +32,8 @@ export type ExerciseLibraryVariant = {
   displayName: string;
   equipment: string;
   attachments: string[];
+  thumbnailUrl?: string;
+  detailImageUrl?: string;
   primaryMuscles: string[];
   secondaryMuscles: string[];
   tips: string[];
@@ -63,6 +67,8 @@ export function mapExerciseApiToVariants(exercises: ExerciseApiRecord[]): Exerci
         : exercise.familyName || exercise.name,
       equipment: titleize(exercise.equipment[0] || 'machine'),
       attachments: (exercise.attachments || []).map(titleize),
+      thumbnailUrl: exercise.thumbnailUrl,
+      detailImageUrl: exercise.detailImageUrl,
       primaryMuscles: exercise.primaryMuscles.map(titleize),
       secondaryMuscles: exercise.secondaryMuscles.map(titleize),
       tips: exercise.tips,

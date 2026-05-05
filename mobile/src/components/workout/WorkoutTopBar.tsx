@@ -3,6 +3,7 @@ import { Alert, Image, ImageBackground, Pressable, StyleSheet, Text, View } from
 
 import { useAppState } from '../../hooks/useAppState';
 import { useTheme } from '../../hooks/useTheme';
+import { chrome } from '../../theme/styles';
 import { humanize } from '../../utils/format';
 import { WorkoutMenuModal } from './WorkoutMenuModal';
 
@@ -45,7 +46,7 @@ export function WorkoutTopBar() {
 
   return (
     <View style={workoutTopBarStyles.barWrap}>
-      <View style={[workoutTopBarStyles.bar, { backgroundColor: palette.card, borderColor: palette.line }]}>
+      <View style={[workoutTopBarStyles.bar, { backgroundColor: palette.panel, borderColor: palette.line }]}>
         <View style={workoutTopBarStyles.topRow}>
           <View style={workoutTopBarStyles.left}>
             <View style={workoutTopBarStyles.clockRow}>
@@ -142,16 +143,16 @@ export function WorkoutTopBar() {
 
 const workoutTopBarStyles = StyleSheet.create({
   barWrap: {
-    paddingHorizontal: 5,
-    paddingTop: 5,
+    paddingHorizontal: chrome.screenPadding,
+    paddingTop: chrome.screenPadding,
     paddingBottom: 2,
   },
   bar: {
     borderWidth: 1,
-    borderRadius: 18,
+    borderRadius: chrome.cardRadius,
     paddingHorizontal: 14,
-    paddingVertical: 12,
-    gap: 12,
+    paddingVertical: 11,
+    gap: 10,
   },
   topRow: {
     flexDirection: 'row',
@@ -165,29 +166,31 @@ const workoutTopBarStyles = StyleSheet.create({
   clockRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 7,
   },
   logoImage: {
-    width: 60,
-    height: 60,
+    width: 52,
+    height: 52,
   },
   copyBlock: {
     gap: 0,
   },
   pulse: {
-    fontSize: 18,
-    fontWeight: '900',
+    fontSize: 16,
+    fontWeight: '800',
     marginLeft: 4,
   },
   eyebrow: {
-    fontSize: 14,
-    fontWeight: '800',
-    letterSpacing: 1,
+    fontSize: 13,
+    fontWeight: '700',
+    letterSpacing: 0.8,
     textTransform: 'uppercase',
   },
   subtitle: {
-    fontSize: 12,
-    fontWeight: '600',
+    fontSize: chrome.metaFontSize,
+    lineHeight: chrome.metaLineHeight,
+    fontWeight: '500',
+    opacity: chrome.metaOpacity,
   },
   right: {
     alignItems: 'flex-end',
@@ -202,8 +205,8 @@ const workoutTopBarStyles = StyleSheet.create({
     flex: 1,
     flexBasis: 0,
     borderWidth: 1,
-    borderRadius: 14,
-    minHeight: 52,
+    borderRadius: chrome.buttonRadius,
+    minHeight: 46,
     paddingHorizontal: 0,
     paddingVertical: 0,
     flexDirection: 'row',
@@ -220,7 +223,7 @@ const workoutTopBarStyles = StyleSheet.create({
     justifyContent: 'center',
     gap: 10,
     paddingHorizontal: 10,
-    paddingVertical: 10,
+    paddingVertical: 9,
     overflow: 'hidden',
   },
   saveButtonTexture: {
@@ -231,43 +234,44 @@ const workoutTopBarStyles = StyleSheet.create({
     left: 0,
   },
   saveButtonTextureImage: {
-    borderRadius: 14,
+    borderRadius: chrome.buttonRadius,
     transform: [{ scaleX: 1.12 }, { scaleY: 1.04 }],
   },
   planIcon: {
-    fontSize: 20,
-    fontWeight: '900',
+    fontSize: 18,
+    fontWeight: '800',
     lineHeight: 20,
   },
   secondaryIcon: {
-    fontSize: 20,
-    fontWeight: '900',
+    fontSize: 18,
+    fontWeight: '800',
     lineHeight: 20,
   },
   primaryIcon: {
-    fontSize: 20,
-    fontWeight: '900',
+    fontSize: 18,
+    fontWeight: '800',
     lineHeight: 20,
   },
   actionTitle: {
-    fontSize: 16,
-    fontWeight: '800',
+    fontSize: 15,
+    fontWeight: '700',
     lineHeight: 16,
   },
   primaryTitle: {
-    fontSize: 16,
-    fontWeight: '900',
+    fontSize: 15,
+    fontWeight: '800',
     lineHeight: 16,
   },
   timerValue: {
-    fontSize: 24,
-    fontWeight: '900',
-    letterSpacing: -0.8,
+    fontSize: 22,
+    fontWeight: '800',
+    letterSpacing: -0.6,
   },
   timerLabel: {
     fontSize: 10,
-    fontWeight: '700',
+    fontWeight: '600',
     textTransform: 'uppercase',
     letterSpacing: 0.8,
+    opacity: chrome.metaOpacity,
   },
 });

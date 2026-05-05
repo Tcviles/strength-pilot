@@ -21,6 +21,8 @@ export type ExerciseInfoRecord = {
   variantLabel?: string;
   equipment: string;
   attachments?: string[];
+  thumbnailUrl?: string;
+  detailImageUrl?: string;
   primaryMuscles: string[];
   secondaryMuscles: string[];
   tips: string[];
@@ -33,6 +35,8 @@ export type ExerciseInfoRecord = {
     variantLabel?: string;
     equipment: string;
     attachments?: string[];
+    thumbnailUrl?: string;
+    detailImageUrl?: string;
     primaryMuscles: string[];
     secondaryMuscles: string[];
     tips: string[];
@@ -61,6 +65,9 @@ type Props = {
   deleteLoading?: boolean;
   onDelete?: (exerciseId: string) => void;
   onVariantPress?: (exerciseId: string) => void;
+  uploadLoading?: 'thumbnail' | 'detail' | null;
+  onUploadThumbnail?: (exerciseId: string) => void;
+  onUploadDetail?: (exerciseId: string) => void;
 };
 
 const DIAGRAMS: Record<string, any> = {
@@ -79,6 +86,9 @@ export function ExerciseInfoModal({
   deleteLoading = false,
   onDelete,
   onVariantPress,
+  uploadLoading = null,
+  onUploadThumbnail,
+  onUploadDetail,
 }: Props) {
   const { palette } = useTheme();
   const [selectedVariantId, setSelectedVariantId] = React.useState<string | null>(exerciseId);
@@ -101,6 +111,8 @@ export function ExerciseInfoModal({
     variantLabel: fallbackMeta.variantLabel,
     equipment: fallbackMeta.equipment,
     attachments: [],
+    thumbnailUrl: undefined,
+    detailImageUrl: undefined,
     primaryMuscles: fallbackMeta.primaryMuscles,
     secondaryMuscles: fallbackMeta.secondaryMuscles,
     tips: fallbackMeta.tips,
@@ -110,7 +122,11 @@ export function ExerciseInfoModal({
   const availableVariants = exerciseMeta.variants?.length ? exerciseMeta.variants : [exerciseMeta];
   const currentVariant = availableVariants.find((variant) => variant.exerciseId === selectedVariantId) || availableVariants[0];
   const currentExerciseId = currentVariant.exerciseId;
-  const diagramSource = currentExerciseId ? (DIAGRAMS[currentExerciseId] || null) : null;
+  const diagramSource = currentVariant.detailImageUrl
+    ? { uri: currentVariant.detailImageUrl }
+    : currentExerciseId
+      ? (DIAGRAMS[currentExerciseId] || null)
+      : null;
 
   return (
     <Modal animationType="fade" transparent visible={visible} onRequestClose={onClose}>
@@ -194,6 +210,46 @@ export function ExerciseInfoModal({
                       </Pressable>
                     );
                   })}
+                </View>
+              </View>
+            ) : null}
+
+            {onUploadThumbnail || onUploadDetail ? (
+              <View style={exerciseInfoModalStyles.modalSection}>
+                <Text style={[exerciseInfoModalStyles.modalSectionLabel, { color: palette.accent }]}>
+                  Media
+                </Text>
+                <View style={exerciseInfoModalStyles.mediaActionRow}>
+                  {onUploadThumbnail ? (
+                    <Pressable
+                      onPress={() => onUploadThumbnail(currentVariant.exerciseId)}
+                      disabled={uploadLoading !== null}
+                      style={[
+                        exerciseInfoModalStyles.mediaActionButton,
+                        { backgroundColor: palette.panel, borderColor: palette.line },
+                        uploadLoading ? exerciseInfoModalStyles.modalDeleteCardLoading : null,
+                      ]}
+                    >
+                      <Text style={[exerciseInfoModalStyles.mediaActionTitle, { color: palette.text }]}>
+                        {uploadLoading === 'thumbnail' ? 'Uploading...' : 'Upload Thumbnail'}
+                      </Text>
+                    </Pressable>
+                  ) : null}
+                  {onUploadDetail ? (
+                    <Pressable
+                      onPress={() => onUploadDetail(currentVariant.exerciseId)}
+                      disabled={uploadLoading !== null}
+                      style={[
+                        exerciseInfoModalStyles.mediaActionButton,
+                        { backgroundColor: palette.panel, borderColor: palette.line },
+                        uploadLoading ? exerciseInfoModalStyles.modalDeleteCardLoading : null,
+                      ]}
+                    >
+                      <Text style={[exerciseInfoModalStyles.mediaActionTitle, { color: palette.text }]}>
+                        {uploadLoading === 'detail' ? 'Uploading...' : 'Upload Detail Image'}
+                      </Text>
+                    </Pressable>
+                  ) : null}
                 </View>
               </View>
             ) : null}
@@ -348,6 +404,10 @@ const exerciseInfoModalStyles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: 8,
   },
+  mediaActionRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
   variantButton: {
     borderWidth: 1,
     borderRadius: 12,
@@ -390,6 +450,19 @@ const exerciseInfoModalStyles = StyleSheet.create({
     borderRadius: 18,
     padding: 14,
     gap: 4,
+  },
+  mediaActionButton: {
+    flex: 1,
+    borderWidth: 1,
+    borderRadius: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  mediaActionTitle: {
+    fontSize: 13,
+    fontWeight: '700',
   },
   modalAlternativeTitle: {
     fontSize: 16,

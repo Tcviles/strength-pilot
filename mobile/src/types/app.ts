@@ -41,6 +41,8 @@ export type WorkoutExercise = {
   targetSets: number;
   targetReps: string;
   restSeconds: number;
+  thumbnailUrl?: string;
+  detailImageUrl?: string;
   sets: Array<{
     setNumber: number;
     weight: number;

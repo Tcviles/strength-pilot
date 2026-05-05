@@ -28,6 +28,7 @@ Globals:
         WORKOUTS_TABLE: !Ref WorkoutsTable
         GYMS_TABLE: !Ref GymsTable
         EXERCISES_TABLE: !Ref ExercisesTable
+        EXERCISE_MEDIA_BUCKET: !Ref ExerciseMediaBucket
         STAGE: !Ref Stage
 
 Resources:
@@ -162,6 +163,36 @@ Resources:
       KeySchema:
         - AttributeName: exerciseId
           KeyType: HASH
+
+  ExerciseMediaBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BucketName: !Sub strength-pilot-${Stage}-media-${AWS::AccountId}
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: false
+        BlockPublicPolicy: false
+        IgnorePublicAcls: false
+        RestrictPublicBuckets: false
+      CorsConfiguration:
+        CorsRules:
+          - AllowedMethods: [GET, PUT]
+            AllowedOrigins: ['*']
+            AllowedHeaders: ['*']
+            MaxAge: 3000
+
+  ExerciseMediaBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref ExerciseMediaBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: '*'
+            Action: s3:GetObject
+            Resource: !Sub arn:aws:s3:::${ExerciseMediaBucket}/*
 
   # ---- HTTP API with Cognito JWT authorizer ----
   StrengthPilotApi:
@@ -352,6 +383,31 @@ Resources:
             Auth:
               Authorizer: NONE
 
+  UploadExerciseMedia:
+    <<: *GeneralFunction
+    Properties:
+      <<: *GeneralProperties
+      FunctionName: !Sub strength-pilot-${Stage}-uploadExerciseMedia
+      CodeUri: src/exercise
+      Handler: upload_exercise_media.lambda_handler
+      Policies:
+        - AmazonDynamoDBFullAccess
+        - AWSLambdaBasicExecutionRole
+        - Statement:
+            Effect: Allow
+            Action:
+              - s3:PutObject
+            Resource: !Sub ${ExerciseMediaBucket.Arn}/*
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref StrengthPilotApi
+            Path: /exercises/{exerciseId}/media
+            Method: post
+            Auth:
+              Authorizer: NONE
+
   # ---- User domain ----
   GetUserProfile:
     <<: *GeneralFunction
@@ -427,3 +483,6 @@ Outputs:
   ExercisesTableName:
     Description: Canonical exercises DynamoDB table name
     Value: !Ref ExercisesTable
+  ExerciseMediaBucketName:
+    Description: Exercise media S3 bucket name
+    Value: !Ref ExerciseMediaBucket

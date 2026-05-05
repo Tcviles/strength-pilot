@@ -10,6 +10,7 @@ import {
 import { getExerciseMeta } from '../../constants/exercises';
 import { useAppState } from '../../hooks/useAppState';
 import { useTheme } from '../../hooks/useTheme';
+import { chrome } from '../../theme/styles';
 import { ActionButton } from '../shared/ActionButton';
 import { WorkoutTemplateEditor } from './WorkoutTemplateEditor';
 
@@ -43,7 +44,7 @@ export function WorkoutPreviewCard() {
         <View
           style={[
             workoutPreviewCardStyles.card,
-            { backgroundColor: palette.card, borderColor: palette.line },
+            { backgroundColor: palette.panel, borderColor: palette.line },
           ]}
         >
           <View style={workoutPreviewCardStyles.headerRow}>
@@ -73,7 +74,7 @@ export function WorkoutPreviewCard() {
             <View
               style={[
                 workoutPreviewCardStyles.statCard,
-                { backgroundColor: palette.panel, borderColor: palette.line },
+                { backgroundColor: palette.card, borderColor: palette.line },
               ]}
             >
               <Text style={[workoutPreviewCardStyles.statLabel, { color: palette.muted }]}>Estimated Time</Text>
@@ -82,7 +83,7 @@ export function WorkoutPreviewCard() {
             <View
               style={[
                 workoutPreviewCardStyles.statCard,
-                { backgroundColor: palette.panel, borderColor: palette.line },
+                { backgroundColor: palette.card, borderColor: palette.line },
               ]}
             >
               <Text style={[workoutPreviewCardStyles.statLabel, { color: palette.muted }]}>Exercises</Text>
@@ -93,7 +94,7 @@ export function WorkoutPreviewCard() {
           <View
             style={[
               workoutPreviewCardStyles.listWrap,
-              { backgroundColor: palette.panel, borderColor: palette.line },
+              { backgroundColor: palette.card, borderColor: palette.line },
             ]}
           >
             {workout.exercises.map((exercise, index) => {
@@ -134,7 +135,7 @@ export function WorkoutPreviewCard() {
               onPress={cancelWorkout}
               style={[
                 workoutPreviewCardStyles.secondaryAction,
-                { backgroundColor: palette.panel, borderColor: palette.line },
+                { backgroundColor: palette.card, borderColor: palette.line },
               ]}
             >
               <Text style={[workoutPreviewCardStyles.secondaryActionText, { color: palette.text }]}>
@@ -183,13 +184,13 @@ export function WorkoutPreviewCard() {
 
 const workoutPreviewCardStyles = StyleSheet.create({
   screen: {
-    gap: 16,
+    gap: chrome.sectionGap,
   },
   card: {
     borderWidth: 1,
-    borderRadius: 24,
-    padding: 16,
-    gap: 14,
+    borderRadius: chrome.cardRadius,
+    padding: chrome.panelPadding,
+    gap: 12,
   },
   headerRow: {
     flexDirection: 'row',
@@ -199,97 +200,106 @@ const workoutPreviewCardStyles = StyleSheet.create({
   },
   headerCopy: {
     flex: 1,
-    gap: 6,
+    gap: 4,
   },
   eyebrow: {
-    fontSize: 12,
-    fontWeight: '800',
-    letterSpacing: 1.2,
+    fontSize: chrome.eyebrowFontSize,
+    fontWeight: '700',
+    letterSpacing: chrome.eyebrowLetterSpacing,
     textTransform: 'uppercase',
   },
   title: {
-    fontSize: 28,
-    lineHeight: 32,
-    fontWeight: '900',
-    letterSpacing: -0.8,
+    fontSize: 24,
+    lineHeight: 28,
+    fontWeight: '800',
+    letterSpacing: -0.6,
   },
   subtitle: {
-    fontSize: 14,
+    fontSize: chrome.metaFontSize,
+    lineHeight: 17,
     fontWeight: '500',
+    opacity: chrome.metaOpacity,
   },
   editButton: {
     borderWidth: 1,
-    borderRadius: 14,
+    borderRadius: chrome.buttonRadius,
+    minHeight: 44,
     paddingHorizontal: 14,
-    paddingVertical: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   editButtonText: {
     fontSize: 13,
-    fontWeight: '800',
+    fontWeight: '700',
     textTransform: 'uppercase',
   },
   statsRow: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 10,
   },
   statCard: {
     flex: 1,
     borderWidth: 1,
-    borderRadius: 18,
-    padding: 14,
-    gap: 6,
+    borderRadius: chrome.rowRadius,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    gap: 4,
   },
   statLabel: {
     fontSize: 11,
-    fontWeight: '800',
-    letterSpacing: 1,
+    fontWeight: '700',
+    letterSpacing: 0.9,
     textTransform: 'uppercase',
+    opacity: chrome.metaOpacity,
   },
   statValue: {
-    fontSize: 24,
-    lineHeight: 28,
-    fontWeight: '900',
-    letterSpacing: -0.6,
+    fontSize: 21,
+    lineHeight: 24,
+    fontWeight: '800',
+    letterSpacing: -0.4,
   },
   listWrap: {
-    borderWidth: 1,
-    borderRadius: 20,
+    borderRadius: chrome.cardRadius,
     overflow: 'hidden',
   },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
+    paddingHorizontal: 4,
+    paddingVertical: 11,
     borderTopWidth: 1,
   },
   firstRow: {
     borderTopWidth: 0,
   },
   rowIndex: {
-    width: 18,
-    fontSize: 16,
-    fontWeight: '800',
+    width: 22,
+    fontSize: 15,
+    fontWeight: '600',
     textAlign: 'center',
+    opacity: 0.8,
   },
   rowCopy: {
     flex: 1,
-    gap: 4,
+    gap: 2,
   },
   rowTitle: {
-    fontSize: 17,
-    lineHeight: 20,
-    fontWeight: '800',
-    letterSpacing: -0.3,
+    fontSize: 16,
+    lineHeight: 19,
+    fontWeight: '700',
+    letterSpacing: -0.2,
   },
   rowMeta: {
-    fontSize: 13,
+    fontSize: chrome.metaFontSize,
+    lineHeight: chrome.metaLineHeight,
     fontWeight: '500',
+    opacity: chrome.metaOpacity,
   },
   rowHandle: {
-    fontSize: 18,
-    fontWeight: '700',
+    fontSize: 16,
+    fontWeight: '600',
+    opacity: 0.72,
   },
   rowHandleButton: {
     paddingHorizontal: 4,
@@ -297,20 +307,20 @@ const workoutPreviewCardStyles = StyleSheet.create({
   },
   footerRow: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 10,
   },
   secondaryAction: {
     flex: 1,
-    minHeight: 54,
+    minHeight: 48,
     borderWidth: 1,
-    borderRadius: 16,
+    borderRadius: chrome.buttonRadius,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 18,
+    paddingHorizontal: 16,
   },
   secondaryActionText: {
-    fontSize: 16,
-    fontWeight: '800',
+    fontSize: 15,
+    fontWeight: '700',
     letterSpacing: 0.2,
   },
   modalBackdrop: {

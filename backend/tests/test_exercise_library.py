@@ -182,6 +182,8 @@ class ExerciseLibraryServiceTests(unittest.TestCase):
                 'placement': 'mid',
                 'alternatives': ['db_fly'],
                 'attachments': [],
+                'thumbnailUrl': '',
+                'detailImageUrl': '',
                 'formCues': [],
                 'tips': [],
                 'strategyTags': ['isolation', 'accessory'],

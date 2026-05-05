@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { useTheme } from '../../hooks/useTheme';
 import { publicApiRequest } from '../../services/api';
@@ -10,6 +10,7 @@ import {
   type ExerciseApiRecord,
   type ExerciseLibraryFamily,
 } from '../../services/exerciseLibrary';
+import { uploadExerciseMedia } from '../../services/exerciseMedia';
 import { ExerciseInfoModal, type ExerciseInfoRecord } from '../shared/ExerciseInfoModal';
 import { AddExerciseModal } from './AddExerciseModal';
 
@@ -67,6 +68,7 @@ export function LibraryCard() {
   const [addLoading, setAddLoading] = useState(false);
   const [addError, setAddError] = useState('');
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [uploadLoading, setUploadLoading] = useState<'thumbnail' | 'detail' | null>(null);
   const [fetchedExercises, setFetchedExercises] = useState<ExerciseLibraryFamily[]>([]);
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
 
@@ -141,6 +143,26 @@ export function LibraryCard() {
     setSelectedExercise(exercise);
   };
 
+  const applyUpdatedExerciseRecord = (exercise: ExerciseApiRecord) => {
+    const mapped = mapExerciseApiToVariants([exercise])[0];
+    setFetchedExercises((current) => {
+      const nextVariants = current.flatMap((item) => item.variants || [item]);
+      const filtered = nextVariants.filter((item) => item.exerciseId !== mapped.exerciseId);
+      return mapVariantsToFamilies([...filtered, mapped]);
+    });
+    setSelectedExerciseId(mapped.exerciseId);
+    setSelectedExercise((current) => ({
+      ...(current || mapped),
+      ...mapped,
+      name: mapped.familyName || mapped.name,
+      variants: current?.variants?.map((variant) =>
+        variant.exerciseId === mapped.exerciseId
+          ? { ...variant, ...mapped }
+          : variant,
+      ) || [mapped],
+    }));
+  };
+
   const handleAddExercise = async (payload: { name: string; equipment: string; notes?: string }) => {
     setAddLoading(true);
     setAddError('');
@@ -151,21 +173,30 @@ export function LibraryCard() {
         'POST',
         payload,
       );
-      const mapped = mapExerciseApiToVariants([response.exercise])[0];
-
-      setFetchedExercises((current) => {
-        const nextVariants = current.flatMap((item) => item.variants || [item]);
-        const merged = [...nextVariants.filter((item) => item.exerciseId !== mapped.exerciseId), mapped];
-        return mapVariantsToFamilies(merged);
-      });
+      applyUpdatedExerciseRecord(response.exercise);
       setShowAddExercise(false);
-      setSelectedExerciseId(mapped.exerciseId);
-      setSelectedExercise({ ...mapped, name: mapped.familyName || mapped.name, variants: [mapped] });
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Could not add exercise.';
       setAddError(message);
     } finally {
       setAddLoading(false);
+    }
+  };
+
+  const handleUploadMedia = async (exerciseId: string, slot: 'thumbnail' | 'detail') => {
+    setUploadLoading(slot);
+    setAddError('');
+    try {
+      const updated = await uploadExerciseMedia(exerciseId, slot);
+      if (updated) {
+        applyUpdatedExerciseRecord(updated);
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Could not upload image.';
+      setAddError(message);
+      Alert.alert('Upload failed', message);
+    } finally {
+      setUploadLoading(null);
     }
   };
 
@@ -350,7 +381,10 @@ export function LibraryCard() {
         visible={Boolean(selectedExerciseId)}
         showDelete={Boolean(selectedExerciseId)}
         deleteLoading={deleteLoading}
+        uploadLoading={uploadLoading}
         onDelete={handleDeleteExercise}
+        onUploadThumbnail={(exerciseId) => handleUploadMedia(exerciseId, 'thumbnail')}
+        onUploadDetail={(exerciseId) => handleUploadMedia(exerciseId, 'detail')}
         onClose={() => {
           setSelectedExerciseId(null);
           setSelectedExercise(null);

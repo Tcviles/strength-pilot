@@ -75,6 +75,8 @@ class CanonicalExerciseTests(unittest.TestCase):
         self.assertEqual(record['familyName'], 'Rope Pushdown')
         self.assertEqual(record['variantLabel'], '')
         self.assertEqual(record['attachments'], ['rope'])
+        self.assertEqual(record['thumbnailUrl'], '')
+        self.assertEqual(record['detailImageUrl'], '')
         self.assertIn('primaryMuscles', record)
         self.assertNotIn('baseWeight', record)
 

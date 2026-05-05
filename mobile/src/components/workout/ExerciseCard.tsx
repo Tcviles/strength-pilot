@@ -13,6 +13,7 @@ import {
 import { getExerciseMeta } from '../../constants/exercises';
 import { useAppState } from '../../hooks/useAppState';
 import { useTheme } from '../../hooks/useTheme';
+import { chrome } from '../../theme/styles';
 import { ActionButton } from '../shared/ActionButton';
 import { ExerciseInfoModal } from '../shared/ExerciseInfoModal';
 import { WorkoutExercisePickerModal } from './WorkoutExercisePickerModal';
@@ -468,9 +469,9 @@ export function ExerciseCard() {
 const exerciseCardStyles = StyleSheet.create({
   card: {
     borderWidth: 1,
-    borderRadius: 24,
-    padding: 16,
-    gap: 14,
+    borderRadius: chrome.cardRadius,
+    padding: chrome.panelPadding,
+    gap: 12,
   },
   exerciseHeaderRow: {
     flexDirection: 'row',
@@ -480,16 +481,18 @@ const exerciseCardStyles = StyleSheet.create({
   },
   exerciseHeaderCopy: {
     flex: 1,
-    gap: 4,
+    gap: 3,
   },
   exerciseName: {
-    fontSize: 18,
-    fontWeight: '800',
-    letterSpacing: -0.4,
+    fontSize: 17,
+    fontWeight: '700',
+    letterSpacing: -0.25,
   },
   exerciseSubline: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: chrome.metaFontSize,
+    lineHeight: chrome.metaLineHeight,
+    fontWeight: '500',
+    opacity: chrome.metaOpacity,
   },
   exerciseHeaderActions: {
     flexDirection: 'row',
@@ -497,23 +500,23 @@ const exerciseCardStyles = StyleSheet.create({
   },
   exerciseHeaderAction: {
     borderWidth: 1,
-    borderRadius: 12,
-    minWidth: 54,
-    minHeight: 40,
+    borderRadius: chrome.buttonRadius,
+    minWidth: 48,
+    minHeight: 44,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 10,
   },
   exerciseHeaderIconText: {
-    fontSize: 18,
-    fontWeight: '800',
+    fontSize: 17,
+    fontWeight: '700',
     lineHeight: 18,
     textTransform: 'none',
   },
   restBanner: {
     borderWidth: 1,
-    borderRadius: 14,
-    minHeight: 42,
+    borderRadius: chrome.buttonRadius,
+    minHeight: 40,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -521,18 +524,18 @@ const exerciseCardStyles = StyleSheet.create({
     paddingHorizontal: 12,
   },
   restBannerLabel: {
-    fontSize: 13,
-    fontWeight: '800',
+    fontSize: 12,
+    fontWeight: '700',
     letterSpacing: 1,
     textTransform: 'uppercase',
   },
   restBannerValue: {
-    fontSize: 16,
-    fontWeight: '800',
+    fontSize: 15,
+    fontWeight: '700',
   },
   restBannerGo: {
-    fontSize: 18,
-    fontWeight: '900',
+    fontSize: 16,
+    fontWeight: '800',
     letterSpacing: 1.2,
     textTransform: 'uppercase',
   },
@@ -545,20 +548,21 @@ const exerciseCardStyles = StyleSheet.create({
   },
   tableWrap: {
     borderWidth: 1,
-    borderRadius: 18,
+    borderRadius: chrome.cardRadius,
     overflow: 'hidden',
   },
   tableHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingVertical: 9,
   },
   tableHeaderText: {
-    fontSize: 11,
-    fontWeight: '800',
-    letterSpacing: 1,
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 0.9,
     textTransform: 'uppercase',
+    opacity: chrome.metaOpacity,
   },
   setCol: {
     width: 44,
@@ -576,7 +580,7 @@ const exerciseCardStyles = StyleSheet.create({
   setRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    minHeight: 62,
+    minHeight: 56,
     paddingHorizontal: 12,
     borderTopWidth: 1,
   },
@@ -604,33 +608,34 @@ const exerciseCardStyles = StyleSheet.create({
     opacity: 1,
   },
   setRowText: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '700',
   },
   setPreviousText: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 13,
+    fontWeight: '500',
+    opacity: chrome.metaOpacity,
   },
   setInput: {
     borderWidth: 1,
-    borderRadius: 12,
-    minHeight: 40,
+    borderRadius: 13,
+    minHeight: 38,
     paddingHorizontal: 10,
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '700',
     textAlign: 'center',
   },
   checkButton: {
-    width: 42,
-    height: 42,
+    width: 38,
+    height: 38,
     borderWidth: 1,
-    borderRadius: 14,
+    borderRadius: 19,
     alignItems: 'center',
     justifyContent: 'center',
   },
   checkButtonText: {
-    fontSize: 18,
-    fontWeight: '800',
+    fontSize: 17,
+    fontWeight: '700',
   },
   modalBackdrop: {
     flex: 1,
@@ -721,15 +726,15 @@ const exerciseCardStyles = StyleSheet.create({
     gap: 10,
   },
   addExerciseButton: {
-    minHeight: 48,
+    minHeight: 44,
     borderWidth: 1,
-    borderRadius: 16,
+    borderRadius: chrome.buttonRadius,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 14,
   },
   addExerciseButtonText: {
-    fontSize: 16,
-    fontWeight: '800',
+    fontSize: 15,
+    fontWeight: '700',
   },
 });

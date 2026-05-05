@@ -2,6 +2,7 @@ import React from 'react';
 import { Image, StyleSheet, Text, View } from 'react-native';
 
 import { useTheme } from '../../hooks/useTheme';
+import { chrome } from '../../theme/styles';
 import { ExerciseCard } from './ExerciseCard';
 
 const MINI_LOGO = require('../../media/MiniLogo.png');
@@ -37,13 +38,13 @@ export function WorkoutCard() {
 
 const workoutCardStyles = StyleSheet.create({
   screen: {
-    gap: 10,
+    gap: chrome.compactGap,
   },
   promoCard: {
     borderWidth: 1,
-    borderRadius: 22,
+    borderRadius: chrome.cardRadius,
     paddingHorizontal: 16,
-    paddingVertical: 16,
+    paddingVertical: 14,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -57,21 +58,22 @@ const workoutCardStyles = StyleSheet.create({
     flex: 1,
   },
   promoLogo: {
-    width: 48,
-    height: 48,
+    width: 40,
+    height: 40,
   },
   promoCopy: {
-    gap: 4,
+    gap: 2,
     flex: 1,
   },
   promoTitle: {
-    fontSize: 16,
-    fontWeight: '800',
+    fontSize: 15,
+    fontWeight: '700',
     letterSpacing: -0.2,
   },
   promoBody: {
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: chrome.metaFontSize,
+    lineHeight: 16,
     fontWeight: '500',
+    opacity: chrome.metaOpacity,
   },
 });

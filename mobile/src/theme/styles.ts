@@ -1,5 +1,21 @@
 import { StyleSheet } from 'react-native';
 
+export const chrome = {
+  screenPadding: 5,
+  panelPadding: 14,
+  cardRadius: 10,
+  rowRadius: 10,
+  buttonRadius: 14,
+  sectionGap: 12,
+  compactGap: 10,
+  metaFontSize: 12,
+  metaLineHeight: 14,
+  metaOpacity: 0.68,
+  eyebrowFontSize: 11,
+  eyebrowLetterSpacing: 1.1,
+  separatorOpacity: 0.55,
+};
+
 export const styles = StyleSheet.create({
   card: {
     borderWidth: 1,

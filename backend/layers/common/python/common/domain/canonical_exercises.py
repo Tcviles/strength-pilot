@@ -75,6 +75,8 @@ class CanonicalExercise:
     placement: str = 'mid'
     alternatives: List[str] = field(default_factory=list)
     attachments: List[str] = field(default_factory=list)
+    thumbnail_url: str = ''
+    detail_image_url: str = ''
     form_cues: List[str] = field(default_factory=list)
     tips: List[str] = field(default_factory=list)
     strategy_tags: List[str] = field(default_factory=list)
@@ -113,6 +115,8 @@ class CanonicalExercise:
             'placement': self.placement,
             'alternatives': list(self.alternatives),
             'attachments': list(self.attachments),
+            'thumbnailUrl': self.thumbnail_url,
+            'detailImageUrl': self.detail_image_url,
             'formCues': list(self.form_cues),
             'tips': list(self.tips),
             'strategyTags': list(self.strategy_tags),
@@ -165,6 +169,8 @@ def build_canonical_exercise(record: Dict[str, Any]) -> CanonicalExercise:
         record.get('alternatives') or record.get('substitutes'),
     )
     attachments = _normalize_string_list(record.get('attachments'), tag=True)
+    thumbnail_url = _normalize_text(record.get('thumbnailUrl'))
+    detail_image_url = _normalize_text(record.get('detailImageUrl'))
     form_cues = _normalize_string_list(record.get('formCues') or record.get('form_cues'))
     tips = _normalize_string_list(record.get('tips')) or list(form_cues)
 
@@ -190,6 +196,8 @@ def build_canonical_exercise(record: Dict[str, Any]) -> CanonicalExercise:
         placement=placement,
         alternatives=alternatives,
         attachments=attachments,
+        thumbnail_url=thumbnail_url,
+        detail_image_url=detail_image_url,
         form_cues=form_cues,
         tips=tips,
         strategy_tags=strategy_tags,

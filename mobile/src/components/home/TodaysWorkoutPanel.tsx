@@ -41,7 +41,9 @@ export function TodaysWorkoutPanel({
           const isCompleted = progress ? progress.setProgress.length > 0 && progress.setProgress.every((setEntry) => setEntry.completed) : false;
           const isFuture = index > activeExerciseIndex && !isCompleted;
           const isUpNext = index === nextExerciseIndex && !isCompleted;
-          const thumbnail = getThumbnailForExercise(meta.primaryMuscles);
+          const thumbnail = exercise.thumbnailUrl
+            ? { uri: exercise.thumbnailUrl }
+            : getThumbnailForExercise(meta.primaryMuscles);
 
           return (
             <View key={`${exercise.exerciseId}-${index}`}>
